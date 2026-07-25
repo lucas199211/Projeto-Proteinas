@@ -220,6 +220,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
 .eb-val{font-size:13px;font-weight:700;color:var(--t2);margin-top:1px;}
 .eb-unit{font-size:9px;color:var(--t3);}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -2926,6 +2927,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 <script>
+// ── Supabase: estado compartilhado entre usuários (todos usam o mesmo login
+// Basic Auth, então "salvar" precisa gravar num lugar comum, não só no navegador) ──
+const SUPABASE_URL='https://dtusochytuhuqsozuxqt.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dXNvY2h5dHVodXFzb3p1eHF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MTQ4MjQsImV4cCI6MjEwMDM5MDgyNH0.Jt9YA_FMSBzEVGMO5pSticGy4MpUV_aknD7JCIzL84w';
+const supa=window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const P={
   // Defaults de processo (antes existiam so em reset(); ausentes aqui causavam
   // NaN no scale-up em load sem localStorage, ex.: no celular)
@@ -3598,7 +3605,7 @@ document.addEventListener('click', function(e){
 // ── PERSISTÊNCIA: salvar/carregar último acesso via localStorage ──
 const STORAGE_KEY='pluma_piloto_snapshot_v4';
 
-function saveSnapshot(silent){
+async function saveSnapshot(silent){
   // Inclui tema e a LISTA de itens de CAPEX (itens customizados só existiam em
   // memória: ao recarregar sumiam da tela e o valor ficava órfão em capexReal)
   const themeRaw=localStorage.getItem('pluma_theme');
@@ -3606,11 +3613,22 @@ function saveSnapshot(silent){
                   theme:themeRaw||null, savedAt:new Date().toISOString()};
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    if(!silent) showToast();
-    updateLastAccessLabel(snapshot.savedAt);
   }catch(err){
     if(!silent) alert('Erro ao salvar: '+err.message+'\nTente reabrir o arquivo no Chrome.');
-    else console.error('autosave:', err);
+    else console.error('autosave (local):', err);
+  }
+  // Grava também no Supabase: todos os usuários compartilham o mesmo login,
+  // então "salvar" precisa valer para todo mundo, não só para este navegador.
+  try{
+    const {error}=await supa.from('pluma_snapshot')
+      .upsert({id:1, data:snapshot, updated_at:snapshot.savedAt});
+    if(error) throw error;
+    if(!silent) showToast('✓ Salvo (compartilhado com todos)');
+    updateLastAccessLabel(snapshot.savedAt, true);
+  }catch(err){
+    console.error('autosave (nuvem):', err);
+    if(!silent) showToast('⚠ Salvo só neste navegador — não sincronizou');
+    updateLastAccessLabel(snapshot.savedAt, false);
   }
 }
 
@@ -3621,11 +3639,29 @@ function autoSaveSoon(){
   _autoSaveT=setTimeout(()=>{ try{ saveSnapshot(true); }catch(e){} }, 900);
 }
 
-function loadSnapshot(){
+async function loadSnapshot(){
+  // Busca o estado compartilhado no Supabase primeiro; se falhar (offline,
+  // chave errada etc.) cai para o último snapshot salvo neste navegador.
+  let snapshot=null, synced=false;
   try{
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(!raw) return;
-    const snapshot=JSON.parse(raw);
+    const {data, error}=await supa.from('pluma_snapshot').select('data').eq('id',1).single();
+    if(error) throw error;
+    if(data && data.data && data.data.params){
+      snapshot=data.data;
+      synced=true;
+    }
+  }catch(err){
+    console.error('Erro ao buscar snapshot da nuvem, usando cache local:', err);
+  }
+  if(!snapshot){
+    try{
+      const raw=localStorage.getItem(STORAGE_KEY);
+      if(raw) snapshot=JSON.parse(raw);
+    }catch(err){
+      console.error('Erro ao carregar snapshot local:', err);
+    }
+  }
+  try{
     if(snapshot && snapshot.params){
       // Merge seguro: só copia valores definidos e válidos, preserva defaults do código
       const mergeValid=(target, source)=>{
@@ -3718,25 +3754,32 @@ function loadSnapshot(){
       });
       const fuelSel=document.getElementById('fuel-sel');
       if(fuelSel) fuelSel.value=P.fuel;
-      updateLastAccessLabel(snapshot.savedAt);
+      updateLastAccessLabel(snapshot.savedAt, synced);
+      // Garante que o cache local fica alinhado com o que acabou de ser aplicado
+      // (se veio da nuvem, evita que um F5 sem rede volte pra um estado velho)
+      if(synced){
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); }catch(e){}
+      }
     }
   }catch(err){
-    console.error('Erro ao carregar snapshot:', err);
+    console.error('Erro ao aplicar snapshot:', err);
   }
 }
 
-function showToast(){
+function showToast(msg){
   const t=document.getElementById('save-toast');
+  if(msg) t.textContent=msg;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2400);
 }
 
-function updateLastAccessLabel(iso){
+function updateLastAccessLabel(iso, synced){
   const el=document.getElementById('last-access-info');
   if(!el || !iso) return;
   const d=new Date(iso);
   const fmtDate=d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  el.textContent='· último salvo: '+fmtDate;
+  const status=synced===false ? ' (não sincronizado — só neste navegador)' : '';
+  el.textContent='· último salvo: '+fmtDate+status;
 }
 
 function reset(){
