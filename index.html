@@ -3760,6 +3760,12 @@ async function loadSnapshot(){
       if(synced){
         try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); }catch(e){}
       }
+      // loadSnapshot() agora é assíncrona (busca no Supabase): o render() inicial do
+      // DOMContentLoaded já rodou com os valores padrão antes desta Promise resolver.
+      // Sem isso, os sliders ficam certos mas os números calculados na tela continuam
+      // mostrando o estado antigo até a próxima interação do usuário.
+      try{ render(); }catch(e){ console.error('render pós-load:', e); }
+      try{ renderScaleup(); }catch(e){ console.error('renderScaleup pós-load:', e); }
     }
   }catch(err){
     console.error('Erro ao aplicar snapshot:', err);
