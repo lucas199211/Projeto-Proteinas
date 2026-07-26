@@ -351,7 +351,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
     <div class="pr">
       <div class="pr-head"><span class="pr-lbl">Aquecimento (min)</span><span class="pr-val editable" data-key="ht" data-min="15" data-max="90">30 min</span></div>
       <input type="range" min="15" max="90" step="5" value="30" oninput="P.ht=+this.value;render()">
-      <div class="pr-note">ΔT: MP −18°C → 55°C (73°C)</div>
+      <div class="pr-note">ΔT: MP 4°C → 55°C (51°C)</div>
     </div>
     <div class="pr">
       <div class="pr-head"><span class="pr-lbl">Hidrólise (min)</span><span class="pr-val editable" data-key="tHidro" data-min="60" data-max="300">180 min</span></div>
@@ -668,7 +668,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           </div>
           <input type="range" min="20" max="90" step="5" value="40" style="width:100%;accent-color:var(--c-amber);"
             oninput="SU.htInd=+this.value;renderScaleup()">
-          <div class="pr-note">ΔT 73°C (MP −18°C → 55°C) · reator 25m³ precisa de mais tempo</div>
+          <div class="pr-note">ΔT 51°C (MP 4°C → 55°C) · reator 25m³ precisa de mais tempo</div>
         </div>
 
         <div class="pr-divider">Parâmetros de concentração</div>
@@ -944,7 +944,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
               <div class="su-sub-item"><div class="su-sub-lbl">Offset entre bateladas</div><div class="su-sub-val" id="sub-r-offset">— min</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">MP por batelada</div><div class="su-sub-val" id="sub-r-mpbat">— t/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Enzima por batelada</div><div class="su-sub-val" id="sub-r-enz">— kg/bat</div></div>
-              <div class="su-sub-item"><div class="su-sub-lbl">Tempo aquecimento</div><div class="su-sub-val" id="sub-r-ht">— min · ΔT 73°C</div></div>
+              <div class="su-sub-item"><div class="su-sub-lbl">Tempo aquecimento</div><div class="su-sub-val" id="sub-r-ht">— min · ΔT 51°C</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Pico de vapor (aquec.)</div><div class="su-sub-val" id="sub-r-vp">— t/h</div></div>
             </div>
           </div>
@@ -3217,9 +3217,9 @@ function _render(){
   const oil_vol = mf_feed_vol*0.03;
 
   // ── STEAM ──
-  // Aquecimento do reator: MP congelada (-18°C) até 55°C = ΔT de 73°C
+  // Aquecimento do reator: MP resfriada (4°C) até 55°C = ΔT de 51°C
   // q = massa_total × Cp × ΔT
-  const dT_reator=73; // °C: -18°C (MP congelada) → 55°C (hidrólise)
+  const dT_reator=51; // °C: 4°C (MP resfriada) → 55°C (hidrólise)
   const q_reator=bat_total*3.8*dT_reator; // kJ
   const kw_peak=q_reator/(P.ht*60);
   // Vapor saturado a ~4 bara: calor latente h_fg ≈ 2133 kJ/kg, eficiência serpentina ~85%
@@ -4328,8 +4328,8 @@ function renderScaleup(){
   const oleo_dia  = oleo_h * 24 / 1000;                  // t/dia
 
   // ── Caldeira — cálculo único com todas as cargas (usado em OPEX e sub-painel) ──
-  // Aquecimento batelada
-  const qBat      = mpBat*2*3.8*73; // kJ/bat
+  // Aquecimento batelada — ΔT 51°C: MP resfriada (4°C) → 55°C (hidrólise)
+  const qBat      = mpBat*2*3.8*51; // kJ/bat
   const kwBat     = qBat/(SU.htInd*60);
   const stBatH    = (kwBat*3600)/(2133*0.85); // kg vapor/bat
   const stReatH   = stBatH * batDia / 24;     // kg/h médio (todas bateladas)
@@ -4828,13 +4828,13 @@ function renderScaleup(){
   setS('sub-pen-sub',  fSU(solPen_h*24/1000,1)+' t/dia (farinha osso · subproduto)');
 
   // Reatores (sub-panel)
-  const stBatReat=(mpBat*2*3.8*73/(SU.htInd*60)*3600)/(2133*0.85);
+  const stBatReat=(mpBat*2*3.8*51/(SU.htInd*60)*3600)/(2133*0.85);
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
   setS('sub-r-offset',offsetMin+' min entre bateladas');
   setS('sub-r-mpbat', fSU(mpBat/1000,1)+' t/bat');
   setS('sub-r-enz',   fSU(mpBat*(P.enzDose/100),0)+' kg/bat ('+P.enzDose+'%)');
-  setS('sub-r-ht',    SU.htInd+' min · ΔT 73°C (MP −18→55°C)');
+  setS('sub-r-ht',    SU.htInd+' min · ΔT 51°C (MP 4→55°C)');
   setS('sub-r-vp',    fSU(stPicoH,1)+' t/h pico');
 
   // Inativação (PHE inline + holding tube DN150)
