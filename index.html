@@ -4848,7 +4848,7 @@ function renderScaleup(){
   const st_inativ_h_t=st_inativ_kgh/1000;                  // t/h — para balanço da caldeira
   const custo_inativ=(st_inativ_kgh/FUEL.cavaco.ksp)*(SU.custoCavaco||300); // R$/h via cavaco industrial
   setBar('su-bar-inativ',(Q_phe_kw/3000)*100);
-  setS('su-eq-inativ',  fSU(Q_phe_kw,0)+' kW');            // kW, não MW
+  setS('su-eq-inativ',  fSU(Q_phe_kw,0)+' kW térmicos');   // carga térmica (vapor no PHE) — não é consumo elétrico
   setS('su-spec-inativ','PHE '+fSU(A_phe,0)+' m² · holding DN150 '+fSU(L_tube,0)+' m (serp. vert.) · 90°C / 15 min');
   setS('sub-i-phe',  fSU(A_phe,0)+' m² (U≈2.000 W/m²K)');
   setS('sub-i-tube', fSU(L_tube,0)+' m serpentina vert. (DN100 geraria '+fSU(L_tube*2.25,0)+'m — imprat.)');
