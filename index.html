@@ -4835,7 +4835,7 @@ function renderScaleup(){
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
   setS('sub-r-offset',offsetMin+' min entre bateladas');
   setS('sub-r-mpbat', fSU(mpBat/1000,1)+' t/bat');
-  setS('sub-r-enz',   fSU(mpBat*(P.enzDose/100),0)+' kg/bat ('+P.enzDose+'%)');
+  setS('sub-r-enz',   fSU(mpBat*enzDose,0)+' kg/bat ('+fSU(enzDose*100,2)+'%)');
   setS('sub-r-ht',    SU.htInd+' min · ΔT 51°C (MP 4→55°C)');
   setS('sub-r-vp',    fSU(stPicoH,1)+' t/h pico');
 
