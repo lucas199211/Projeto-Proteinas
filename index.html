@@ -4496,7 +4496,7 @@ function renderScaleup(){
   const noteEl=document.getElementById('capex-mode-note');
   if(noteEl){
     if(capCotado>0){
-      noteEl.innerHTML = '⚠ Base: cotações escolhidas ('+fSUm(capCotado)+') + '+SU.fatorSeg.toFixed(0)+'% de segurança · manutenção e seguros incidem sobre o CAPEX total.';
+      noteEl.innerHTML = '⚠ Base: cotações escolhidas ('+fSUm(capCotado)+') + '+SU.fatorSeg.toFixed(0)+'% de segurança · seguros incidem sobre o CAPEX total, manutenção só sobre equipamento (exclui obras civis).';
     } else {
       noteEl.innerHTML = '⚠ Nenhuma cotação lançada. Ative "📋 Cotações" na barra inferior e informe os orçamentos — o CAPEX, a manutenção, os seguros e o payback dependem deles.';
     }
@@ -4518,10 +4518,16 @@ function renderScaleup(){
   const poAnoKg   = poDiaKg * 365;
   const moPkg     = poAnoKg > 0 ? moAnual/poAnoKg : 0;
 
-  // Manutenção e seguros sobre CAPEX total
+  // Manutenção e seguros sobre CAPEX
   // capFull para manutenção/seguros usa o CAPEX do modo ativo (Lang ou cotações)
   const capFull   = capTotal; // 100% baseado nas cotacoes + fator de seguranca
-  const manutAno  = capFull * (SU.manutPct/100);
+  // Manutenção só incide sobre equipamento de processo (+ elétrica/instr./PPCI): obras
+  // civis (terreno/construção) têm desgaste muito menor que bomba/membrana/caldeira,
+  // não faz sentido aplicar o mesmo %/ano de manutenção de equipamento em cima delas.
+  // Seguro patrimonial continua sobre o CAPEX total (cobre a edificação também).
+  const capexCivil   = capexGet('civil');
+  const capManutBase = (capCotado-capexCivil) * (1+(SU.fatorSeg||0)/100);
+  const manutAno  = capManutBase * (SU.manutPct/100);
   const seguroAno = capFull * (SU.seguroPct/100);
   const manutPkg  = poAnoKg > 0 ? manutAno/poAnoKg : 0;
   const seguroPkg = poAnoKg > 0 ? seguroAno/poAnoKg : 0;
@@ -4762,7 +4768,7 @@ function renderScaleup(){
   ]);
   dreFill('do', [
     ['Mão de obra direta', moAnual],
-    ['Manutenção ('+fSU(SU.manutPct,1)+'% CAPEX)', manutAno],
+    ['Manutenção ('+fSU(SU.manutPct,1)+'% CAPEX s/ obras civis)', manutAno],
     ['Seguros ('+fSU(SU.seguroPct,1)+'% CAPEX)', seguroAno],
     ['Higienização / CIP', higienMes*12],
     ['Locação', locacaoMesV*12]
