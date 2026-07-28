@@ -1023,6 +1023,21 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
             </div>
           </div>
 
+          <!-- 3b. RESFRIAMENTO (após tridecanter, antes das membranas) -->
+          <div class="su-equip-row" onclick="toggleSub('sub-resf')" style="cursor:pointer;border-left:2px solid var(--c-blue-bd);">
+            <div class="su-eq-label" style="color:var(--c-blue);">3b · Resfriamento <span class="su-expand-icon" id="icon-resf">▸</span></div>
+            <div class="su-eq-bar-wrap"><div class="su-eq-bar" id="su-bar-resf" style="width:0%;background:linear-gradient(90deg,var(--c-blue),var(--c-blue-bd));"></div></div>
+            <div class="su-eq-val" id="su-eq-resf" style="color:var(--c-blue);">—</div>
+            <div class="su-eq-spec" id="su-spec-resf">—</div>
+          </div>
+          <div class="su-sub-panel" id="sub-resf">
+            <div class="su-sub-grid">
+              <div class="su-sub-item"><div class="su-sub-lbl">PHE (resfriamento)</div><div class="su-sub-val" id="sub-r-phe">— m² área troca</div></div>
+              <div class="su-sub-item"><div class="su-sub-lbl">T processo</div><div class="su-sub-val">90°C → 50°C</div></div>
+              <div class="su-sub-item"><div class="su-sub-lbl">Água de resfriamento</div><div class="su-sub-val" id="sub-r-agua">— m³/h</div></div>
+            </div>
+          </div>
+
           <!-- 4. MICROFILTRAÇÃO -->
           <div class="su-equip-row" onclick="toggleSub('sub-mf')" style="cursor:pointer;">
             <div class="su-eq-label">4 · Microfiltração <span class="su-expand-icon" id="icon-mf">▸</span></div>
@@ -1208,6 +1223,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
             <div class="su-sub-grid">
               <div class="su-sub-item"><div class="su-sub-lbl">Carga condensador evap.</div><div class="su-sub-val" id="sub-to-evap">— kW</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Carga PHE inativação</div><div class="su-sub-val" id="sub-to-phe">— kW</div></div>
+              <div class="su-sub-item"><div class="su-sub-lbl">Carga resfriamento pós-trid.</div><div class="su-sub-val" id="sub-to-resf">— kW</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Fluxo água necessário</div><div class="su-sub-val" id="sub-to-flow">— m³/h (ΔT 8°C)</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Capacidade torre</div><div class="su-sub-val" id="sub-to-cap">— kW térm.</div></div>
             </div>
@@ -4853,6 +4869,17 @@ function renderScaleup(){
   const slEficOleo=document.getElementById('su-eficoleo-sl');
   if(slEficOleo){ slEficOleo.value=SU.eficOleo||65; setS('sub-t-eficoleo-val', fSU(SU.eficOleo||65,0)+'%'); }
 
+  // Resfriamento pós-tridecanter (PHE reverso): baixa de 90°C para 50°C antes das
+  // membranas. Calor rejeitado na torre de resfriamento (não consome vapor/cavaco)
+  const Q_resf_kw = (licorH*1.05*3.8*(90-50))/3600;  // kW térmicos removidos
+  const A_resf    = Q_resf_kw*1000/(2000*40);         // m² — U≈2.000 W/m²K, mesma referência do PHE de inativação
+  const aguaResfH = Q_resf_kw*3.6/(4.18*8);           // m³/h água de resfriamento (ΔT 8°C, mesma referência da torre)
+  setBar('su-bar-resf',(Q_resf_kw/3000)*100);
+  setS('su-eq-resf',  fSU(Q_resf_kw,0)+' kW térmicos');
+  setS('su-spec-resf','PHE contracorrente · '+fSU(A_resf,0)+' m² · 90°C → 50°C');
+  setS('sub-r-phe',  fSU(A_resf,0)+' m² (U≈2.000 W/m²K)');
+  setS('sub-r-agua', fSU(aguaResfH,0)+' m³/h (ΔT 8°C)');
+
   // MF
   const nMF=Math.ceil(mfH/3000);
   setS('sub-mf-un',   nMF+' skid(s) · '+fSU(mfH/nMF/1000,1)+' m³/h cada');
@@ -4975,13 +5002,14 @@ function renderScaleup(){
   setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,1)+' t/h equipamento');
   setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald,2):'')+' t/h real');
   // Torre de resfriamento
-  const torreKw=condensKw+Q_phe_kw*0.3;
+  const torreKw=condensKw+Q_phe_kw*0.3+Q_resf_kw;
   const torreFlow=torreKw*3.6/(4.18*8);
   setBar('su-bar-torre',(torreKw/10000)*100);
   setS('su-eq-torre',  fSU(torreFlow,0)+' m³/h');
-  setS('su-spec-torre',fSU(torreKw,0)+' kW · cond. evap. + PHE');
+  setS('su-spec-torre',fSU(torreKw,0)+' kW · cond. evap. + PHE + resfriamento');
   setS('sub-to-evap',  fSU(condensKw,0)+' kW');
   setS('sub-to-phe',   fSU(Q_phe_kw*0.3,0)+' kW');
+  setS('sub-to-resf',  fSU(Q_resf_kw,0)+' kW');
   setS('sub-to-flow',  fSU(torreFlow,0)+' m³/h (ΔT 8°C)');
   setS('sub-to-cap',   fSU(torreKw,0)+' kW térmicos');
 
