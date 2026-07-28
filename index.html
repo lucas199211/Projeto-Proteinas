@@ -4246,7 +4246,7 @@ function renderScaleup(){
   setS('su-horas-ef', fSU(hEfetivas,0)+' h/mês efetivas · '+fSU(indispMes,0)+'h indisponível/mês');
 
   // ── Balanço de massa industrial ──
-  const bi=SU.biInd||P.bi, bor=SU.borInd||P.bor, bev=SU.bevInd||P.bev, mfr=P.mfr/100, pen=P.peneira/100;
+  const bi=SU.biInd||P.bi, bor=SU.borInd||P.bor, bev=SU.bevInd||P.bev, mfr=P.mfr/100, pen=(SU.penPct||P.peneira)/100;
   const rhoB = b => 1+b*0.004;
 
   // MP/h nominal (sem desconto de disp → a disp afeta OPEX anual, não fluxo horário da linha)
@@ -4447,7 +4447,7 @@ function renderScaleup(){
 
   // Displays de insumos
   setS('su-mp-dia-custo',  'R$ '+fSU(mpCostH*24/1000,1)+' mil/dia · '+fSU(SU.mpTdia,0)+' t/dia');
-  setS('su-enz-dia-custo', fSU(mpKg_h*(P.enzDose/100)*24/1000,1)+' t/dia enzima');
+  setS('su-enz-dia-custo', fSU(mpKg_h*enzDose*24/1000,1)+' t/dia enzima');
   setS('su-frete-dia',     'R$ '+fSU(freteCostH*24/1000,1)+' mil/dia');
   const mpp=powder_h>0?mpCostH/powder_h:0;
   const enzp=powder_h>0?enzCostH/powder_h:0;
@@ -4807,25 +4807,27 @@ function renderScaleup(){
 
   // ── SUB-PAINÉIS: cálculos detalhados por equipamento ──
 
-  // Peneira rotativa (sub-panel)
-  const penPctSU = (SU.penPct||20)/100;
-  const solPen_h = mpKg_h * penPctSU;      // kg/h sólidos retidos
-  const liqPen_h = licorH*(1-penPctSU);    // L/h licor passante (peneira remove % da MP sólida)
-  const picoPen  = (mpBat*2*(1-penPctSU))/(15/60); // pico descarga 1 batelada em 15 min
+  // Peneira rotativa (sub-panel) — usa a mesma fração "pen" do balanço de massa
+  // (antes havia uma 2ª variável "penPctSU" lida direto de SU.penPct, dessincronizada
+  // do "pen" que de fato alimenta licorH; e "licorH*(1-pen)" duplicava o desconto do
+  // retido, já que licorH sai de batVolLiq, que já é pós-peneira)
+  const solPen_h = mpKg_h * pen;      // kg/h sólidos retidos
+  const liqPen_h = licorH;            // L/h licor passante (licorH já é pós-peneira)
+  const picoPen  = batVolLiq/(15/60); // pico descarga 1 batelada em 15 min
   // Impacto no Brix: menos sólidos → Brix ligeiramente menor
-  const brixImpact = P.bi*(1-penPctSU*0.5); // estimativa: cada % de sólidos retidos reduz ~0.5% do Brix
-  // Impacto no rendimento: sólidos retidos saem do balanço
-  const rendImpact = (1-penPctSU)*100/(1-0.20)*100; // relativo ao base de 20%
+  const brixImpact = bi*(1-pen*0.5); // estimativa: cada % de sólidos retidos reduz ~0.5% do Brix
+  // Impacto no rendimento: sólidos retidos saem do balanço, relativo ao base de 20%
+  const rendImpact = (1-pen)/(1-0.20)*100;
   const slPen=document.getElementById('su-pen-sl');
-  if(slPen) slPen.value=SU.penPct||20;
-  setS('su-pen-pct-val', (SU.penPct||20)+'%');
-  setBar('su-bar-pen', ((SU.penPct||20)/35)*100);
-  setS('su-eq-pen',    (SU.penPct||20)+'% ret.');
+  if(slPen) slPen.value=pen*100;
+  setS('su-pen-pct-val', fSU(pen*100,0)+'%');
+  setBar('su-bar-pen', (pen*100/35)*100);
+  setS('su-eq-pen',    fSU(pen*100,0)+'% ret.');
   setS('su-spec-pen',  fSU(solPen_h*24/1000,1)+' t/dia retidos · licor: '+fSU(liqPen_h/1000,1)+' m³/h → inativação');
   setS('sub-pen-sol',  fSU(solPen_h*24/1000,1)+' t/dia');
   setS('sub-pen-liq',  fSU(liqPen_h/1000,1)+' m³/h → PHE/inativação');
   setS('sub-pen-pico', fSU(picoPen/1000,1)+' m³/h (1 bat. em 15 min)');
-  setS('sub-pen-brix', fSU(brixImpact,1)+' ° Brix est. (vs. '+P.bi+'° base)');
+  setS('sub-pen-brix', fSU(brixImpact,1)+' ° Brix est. (vs. '+fSU(bi,1)+'° base)');
   setS('sub-pen-rend', fSU(rendImpact,0)+'% do base (20%)');
   setS('sub-pen-sub',  fSU(solPen_h*24/1000,1)+' t/dia (farinha osso · subproduto)');
 
@@ -4932,7 +4934,7 @@ function renderScaleup(){
   setS('sub-ev-taxa', fSU(taxaBase,3)+' kg vapor/kg água');
   setS('sub-ev-vap',  fSU(stEvapNew,2)+' t/h (1 ef. seria '+fSU(aguaEvapH*1.1/1000,1)+'t/h)');
   setS('sub-ev-conc', fSU(evapInH/1000,1)+' m³/h');
-  setS('sub-ev-brix', P.bev);
+  setS('sub-ev-brix', fSU(bev,1));
   setS('sub-ev-tvr',  comp==='tvr'?'razão ~'+fSU(0.6/taxaBase,1)+' (limite: <2,0)':comp==='mvr'?'MVR elétrico — sem limite de razão':'N/A');
   setS('sub-ev-torre',fSU(condensKw,0)+' kW · '+fSU(torrenH,0)+' m³/h');
   setS('sub-ev-econ', comp==='none'&&nEf===1?'base (ref.)':'-'+fSU(econPct,0)+'% vs. 1 efeito s/ compr.');
@@ -4961,7 +4963,7 @@ function renderScaleup(){
     fuelUnitStr='kg vapor/h'; fuelLblStr='Vapor caldeira (12-16 bar)';
     fuelNoteStr='Air-heater: vapor 12-16 bar(187-201°C)→ar 175°C→câmara · sem zona ATEX · carga entra na caldeira · custo via cavaco (R$'+fSU(SU.custoCavaco||300,0)+'/ton)';
   } else {
-    combH=Q_dryer_kw/0.98; custoDryH=combH*P.elet;
+    combH=Q_dryer_kw/0.98; custoDryH=combH*eletTarifa;
     fuelUnitStr='kW elétrico'; fuelLblStr='Elétrico';
     fuelNoteStr='Resistência elétrica · eficiência 98% · sem combustível · custo ~3× GLP';
   }
