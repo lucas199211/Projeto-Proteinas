@@ -1009,6 +1009,24 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
               <div class="su-sub-item"><div class="su-sub-lbl">Fase sólida (seca)</div><div class="su-sub-val" id="sub-t-sol">— t/dia</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Fase óleo</div><div class="su-sub-val" id="sub-t-oil">— t/dia</div></div>
             </div>
+            <div style="margin-top:8px;background:var(--s2);border-radius:5px;padding:8px 10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span class="su-sub-lbl">% de gordura na MP (rendimento)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-t-gordura-val">10%</span>
+              </div>
+              <input type="range" min="2" max="25" step="0.5" value="10"
+                oninput="SU.gorduraMP=+this.value;document.getElementById('sub-t-gordura-val').textContent=this.value+'%';renderScaleup()"
+                style="width:100%;accent-color:var(--c-amber);" id="su-gordura-sl">
+            </div>
+            <div style="margin-top:8px;background:var(--s2);border-radius:5px;padding:8px 10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span class="su-sub-lbl">% de recuperação (eficiência do tridecanter)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-t-eficoleo-val">65%</span>
+              </div>
+              <input type="range" min="30" max="90" step="1" value="65"
+                oninput="SU.eficOleo=+this.value;document.getElementById('sub-t-eficoleo-val').textContent=this.value+'%';renderScaleup()"
+                style="width:100%;accent-color:var(--c-amber);" id="su-eficoleo-sl">
+            </div>
           </div>
 
           <!-- 4. MICROFILTRAÇÃO -->
@@ -4887,6 +4905,11 @@ function renderScaleup(){
   setS('sub-t-cap', '15,0 m³/h (unidade em operação)');
   setS('sub-t-sol', fSU(licorH*0.15*24/1000,1)+' t/dia (~15%)');
   setS('sub-t-oil', fSU(oleo_dia,1)+' t/dia · '+fSU(SU.gorduraMP,0)+'% gordura × '+fSU(SU.eficOleo,0)+'% recup.');
+  // Sincroniza sliders de gordura/recuperação com SU (pode vir de snapshot salvo)
+  const slGordura=document.getElementById('su-gordura-sl');
+  if(slGordura){ slGordura.value=SU.gorduraMP||10; setS('sub-t-gordura-val', fSU(SU.gorduraMP||10,0)+'%'); }
+  const slEficOleo=document.getElementById('su-eficoleo-sl');
+  if(slEficOleo){ slEficOleo.value=SU.eficOleo||65; setS('sub-t-eficoleo-val', fSU(SU.eficOleo||65,0)+'%'); }
 
   // MF
   const nMF=Math.ceil(mfH/3000);
