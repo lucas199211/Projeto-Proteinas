@@ -3863,7 +3863,7 @@ const SU={
   moOp:8, moCusto:4500,
   manutPct:3.0, seguroPct:0.8,
   nEfeitos:3, compVapor:'none',
-  atomizacao:'disco', fonteDryer:'glp', dryerFp:4.5,
+  atomizacao:'disco', fonteDryer:'vapor', dryerFp:4.5,
   penPct:20,
   custoMPind:0.40, custoCavaco:300,
   custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.45,
@@ -4383,10 +4383,10 @@ function renderScaleup(){
     'offset '+offsetMin+' min entre bat. · ASME 316L meia-cana · MP '+fSU(mpBat/1000,1)+' t/bat · VFD hidrofoil',
     20);
 
-  // 2. Tridecanter — valor em m³/h, maxVal = 30 m³/h
+  // 2. Tridecanter — 2 un. de 15.000 L/h fixas (1 operando + 1 standby), valor em m³/h
   equip('trid', licorH/1000, fSU(licorH/1000,1)+' m³/h',
-    Math.ceil(licorH/5000)+' un. em paralelo · centrífuga horizontal 3 fases · clarificação + desgordur.',
-    30);
+    '2 un. horizontais 3 fases (1 standby) · 15.000 L/h cada · clarificação + desgordur.',
+    15);
 
   // 3. Microfiltração — valor em m³/h, maxVal = 25 m³/h
   const mfH = licorH * mfr;
@@ -4409,13 +4409,18 @@ function renderScaleup(){
 
   // 5. Evaporador — valor em m³/h entrada, maxVal = 10 m³/h
   equip('evap', evapInH/1000, fSU(evapInH/1000,1)+' m³/h entrada',
-    'Falling film multi-efeito · '+fSU(aguaEvapH/1000,1)+' t/h água evap. · falling film multi-efeito · TVR ou MVR',
+    'Multi-efeito · '+fSU(aguaEvapH/1000,1)+' t/h água evap. · TVR ou MVR',
     10);
 
   // 6. Spray Dryer — valor em t/h água evap., maxVal = 5 t/h
-  // glpDryH já declarado acima
+  // glpDryH e stDryerPre já declarados acima; spec reflete a fonte de calor selecionada
+  const dryerFonteStr = SU.fonteDryer==='vapor'
+    ? 'Vapor caldeira ~'+fSU(stDryerPre,0)+' kg/h'
+    : SU.fonteDryer==='elet'
+      ? 'Elétrico ~'+fSU(Q_dryer_pre/0.98,0)+' kW'
+      : 'GLP ~'+fSU(glpDryH,0)+' kg/h';
   equip('dryer', aguaDryH/1000, fSU(aguaDryH/1000,1)+' t/h água evap.',
-    'Câmara + leito fluidizado · GLP ~'+fSU(glpDryH,0)+' kg/h · T entrada ar: ~195°C',
+    'Câmara + leito fluidizado · '+dryerFonteStr+' · T entrada ar: ~195°C',
     5);
 
   // 7. Caldeira — valor em t/h vapor, maxVal = 20 t/h
@@ -4877,10 +4882,9 @@ function renderScaleup(){
   setS('sub-i-vap',  fSU(st_inativ_kgh,0)+' kg/h ('+fSU(st_inativ_h_t,3)+' t/h)');
   setS('sub-i-custo','R$ '+fSU(custo_inativ,0)+'/h');
 
-  // Tridecanter
-  const nTrid=Math.ceil(licorH/5000);
-  setS('sub-t-un',  nTrid+' un. (~5.000 L/h cada)');
-  setS('sub-t-cap', fSU(licorH/nTrid/1000,1)+' m³/h por unidade');
+  // Tridecanter — 2 un. de 15.000 L/h fixas (1 operando + 1 standby)
+  setS('sub-t-un',  '2 un. (1 operando + 1 standby)');
+  setS('sub-t-cap', '15,0 m³/h (unidade em operação)');
   setS('sub-t-sol', fSU(licorH*0.15*24/1000,1)+' t/dia (~15%)');
   setS('sub-t-oil', fSU(oleo_dia,1)+' t/dia · '+fSU(SU.gorduraMP,0)+'% gordura × '+fSU(SU.eficOleo,0)+'% recup.');
 
