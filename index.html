@@ -776,6 +776,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <input type="range" min="0" max="600" step="5" value="150" style="width:100%;accent-color:var(--c-amber);"
             oninput="SU.cipCustoH=+this.value;renderScaleup()">
           <div class="pr-note">Soda 2% + ácido nítrico 1% + sanitizante + água quente + efluente gerado · amarrado ao slider "CIP programado (h/semana)" · <span id="su-higien-dia">—</span></div>
+          <div class="pr-note" style="margin-top:3px;">📐 Estimativa de baixo pra cima (preços de mercado aproximados, não cotação): <span id="su-cip-estimate" style="color:var(--c-amber);font-weight:700;">—</span></div>
         </div>
         <div class="pr">
           <div class="pr-head">
@@ -4541,6 +4542,25 @@ function renderScaleup(){
   const extrasMes   = locacaoMesV + higienMes + embalMes;
   const extrasPkg   = kgMes > 0 ? extrasMes / kgMes : 0;
   const extrasH     = extrasMes / hMes;
+
+  // Estimativa de baixo pra cima do custo de CIP (preços de mercado aproximados,
+  // NÃO é cotação real — o slider acima continua editável e manda no custo usado).
+  // Premissas: volume de solução = 12% do reator industrial (dimensionamento típico
+  // de skid CIP recirculante); concentrações conforme nota da tela (soda 2%, ácido
+  // nítrico 1%, sanitizante 0,02%); água aquecida de 25°C a 75°C via a mesma
+  // caldeira/cavaco do resto da planta; efluente pela tarifa média de água/esgoto no
+  // Brasil (R$3,06/m³ — provavelmente subestima efluente de alta carga orgânica);
+  // ciclo completo (pré-enxágue+cáustico+enxágue+ácido+enxágue final) de 1,5h
+  const vCipL       = SU.volReatorInd*1000*0.12;         // L de solução/ciclo
+  const custoSoda   = vCipL*0.02*3.50;                    // R$ soda cáustica (~R$3,50/kg)
+  const custoAcido  = vCipL*0.01*4.50;                    // R$ ácido nítrico (~R$4,50/kg)
+  const custoSanit  = vCipL*0.0002*25;                    // R$ sanitizante perácido (~R$25/kg)
+  const qCipKj      = vCipL*4.18*(75-25);                 // kJ p/ aquecer a solução
+  const vaporCip    = qCipKj/(2133*0.85);                 // kg vapor
+  const custoVapCip = (vaporCip/FUEL.cavaco.ksp)*(SU.custoCavaco||300);
+  const custoEflCip = (vCipL/1000)*3.06;                  // R$ efluente (tarifa água/esgoto média)
+  const cipEstimadoH= (custoSoda+custoAcido+custoSanit+custoVapCip+custoEflCip)/1.5;
+  setS('su-cip-estimate', 'R$ '+fSU(cipEstimadoH,0)+'/h (soda R$'+fSU(custoSoda,0)+' + ácido R$'+fSU(custoAcido,0)+' + sanit. R$'+fSU(custoSanit,0)+' + vapor R$'+fSU(custoVapCip,0)+' + efl. R$'+fSU(custoEflCip,0)+', ciclo de 1,5h)');
 
   // Displays dos novos custos
   setS('su-embal-dia',   'R$ '+fSU(embalMes/30,0)+'/dia · R$ '+fSU(SU.embalKg||0,2)+'/kg');
