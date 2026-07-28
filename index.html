@@ -1341,7 +1341,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <div id="ct-detail-panel" style="display:none;margin-bottom:8px;padding:8px;
             background:var(--s3);border-radius:6px;border:1px solid var(--b1);">
             <div style="font-size:8px;color:var(--t3);font-weight:700;text-transform:uppercase;
-              letter-spacing:.05em;margin-bottom:5px;">Decomposição · R$/h e R$/kg pó</div>
+              letter-spacing:.05em;margin-bottom:5px;">Decomposição · R$ mil/mês e R$/kg pó</div>
             <table style="width:100%;border-collapse:collapse;font-size:9px;">
               <tr style="border-bottom:1px solid var(--b1);">
                 <td style="padding:2px 0;color:var(--t3);">Matéria prima</td>
@@ -1368,8 +1368,8 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
                 <td style="text-align:right;color:var(--t2);" id="ct-d-boil-h">—</td>
                 <td style="text-align:right;color:var(--c-amber);font-weight:600;padding-left:8px;" id="ct-d-boil-kg">—</td>
               </tr>
-              <tr style="border-bottom:1px solid var(--b1);">
-                <td style="padding:2px 0;color:var(--t3);">GLP / dryer</td>
+              <tr id="ct-row-glp" style="border-bottom:1px solid var(--b1);">
+                <td style="padding:2px 0;color:var(--t3);" id="ct-lbl-glp">GLP / dryer</td>
                 <td style="text-align:right;color:var(--t2);" id="ct-d-glp-h">—</td>
                 <td style="text-align:right;color:var(--c-amber);font-weight:600;padding-left:8px;" id="ct-d-glp-kg">—</td>
               </tr>
@@ -4619,29 +4619,39 @@ function renderScaleup(){
 
   // ── Painel de detalhamento de custos ──
   const pkg=powder_h>0?(v)=>fSU(v/powder_h,2):(v)=>'—';
-  setS('ct-d-mp-h',    'R$'+fSU(mpCostH,0)+'/h');
+  // Todas as linhas na mesma escala (R$ mil/mês) pra comparar grandeza direto, sem
+  // misturar R$/h com R$/dia e R$/mês como antes
+  const milMes=(v)=>fSU(v*hMes/1000,1);      // custo R$/h → R$ mil/mês
+  const jaMesMil=(v)=>fSU(v/1000,1);         // custo já em R$/mês → R$ mil/mês
+  setS('ct-d-mp-h',    'R$'+milMes(mpCostH)+' mil/mês');
   setS('ct-d-mp-kg',   'R$'+pkg(mpCostH)+'/kg');
-  setS('ct-d-enz-h',   'R$'+fSU(enzCostH,0)+'/h');
+  setS('ct-d-enz-h',   'R$'+milMes(enzCostH)+' mil/mês');
   setS('ct-d-enz-kg',  'R$'+pkg(enzCostH)+'/kg');
-  setS('ct-d-fret-h',  'R$'+fSU(freteCostH,0)+'/h');
+  setS('ct-d-fret-h',  'R$'+milMes(freteCostH)+' mil/mês');
   setS('ct-d-fret-kg', 'R$'+pkg(freteCostH)+'/kg');
-  setS('ct-d-elet-h',  'R$'+fSU(eletCostH,0)+'/h');
+  setS('ct-d-elet-h',  'R$'+milMes(eletCostH)+' mil/mês');
   setS('ct-d-elet-kg', 'R$'+pkg(eletCostH)+'/kg');
-  setS('ct-d-boil-h',  'R$'+fSU(boilCostH,0)+'/h');
+  setS('ct-d-boil-h',  'R$'+milMes(boilCostH)+' mil/mês');
   setS('ct-d-boil-kg', 'R$'+pkg(boilCostH)+'/kg');
-  setS('ct-d-glp-h',   'R$'+fSU(glpDryCostH,0)+'/h');
-  setS('ct-d-glp-kg',  'R$'+pkg(glpDryCostH)+'/kg');
-  setS('ct-d-mo-h',    'R$'+fSU(moH*hMes,0)+'/mês');
+  // Dryer: linha só aparece se a fonte selecionada tiver custo (vapor já entra em
+  // "Biomassa (caldeira)" e some daqui, com custo 0)
+  const dryFuelLbl = SU.fonteDryer==='elet' ? 'Elétrico / dryer' : SU.fonteDryer==='glp' ? 'GLP / dryer' : 'Vapor / dryer';
+  setS('ct-lbl-glp',  dryFuelLbl);
+  setS('ct-d-glp-h',  'R$'+milMes(glpDryCostH)+' mil/mês');
+  setS('ct-d-glp-kg', 'R$'+pkg(glpDryCostH)+'/kg');
+  const rowGlp=document.getElementById('ct-row-glp');
+  if(rowGlp) rowGlp.style.display = glpDryCostH<0.01 ? 'none' : '';
+  setS('ct-d-mo-h',    'R$'+jaMesMil(moH*hMes)+' mil/mês');
   setS('ct-d-mo-kg',   'R$'+fSU(moPkg,2)+'/kg');
-  setS('ct-d-manut-h', 'R$'+fSU((manutAno+seguroAno)/12,0)+'/mês');
+  setS('ct-d-manut-h', 'R$'+jaMesMil((manutAno+seguroAno)/12)+' mil/mês');
   setS('ct-d-manut-kg','R$'+fSU(manutPkg+seguroPkg,2)+'/kg');
-  setS('ct-d-embal-h',   'R$'+fSU(embalMes/30,0)+'/dia');
+  setS('ct-d-embal-h',   'R$'+jaMesMil(embalMes)+' mil/mês');
   setS('ct-d-embal-kg',  'R$'+fSU(kgMes>0?embalMes/kgMes:0,2)+'/kg');
-  setS('ct-d-higien-h',  'R$'+fSU(higienMes,0)+'/mês');
+  setS('ct-d-higien-h',  'R$'+jaMesMil(higienMes)+' mil/mês');
   setS('ct-d-higien-kg', 'R$'+fSU(kgMes>0?higienMes/kgMes:0,3)+'/kg');
-  setS('ct-d-locacao-h', 'R$'+fSU(locacaoMesV,0)+'/mês');
+  setS('ct-d-locacao-h', 'R$'+jaMesMil(locacaoMesV)+' mil/mês');
   setS('ct-d-locacao-kg','R$'+fSU(kgMes>0?locacaoMesV/kgMes:0,3)+'/kg');
-  setS('ct-d-tot-h',   'R$'+fSU(opHTotal*hMes/1000,0)+' mil/mês');
+  setS('ct-d-tot-h',   'R$'+fSU(opHTotal*hMes/1000,1)+' mil/mês');
   setS('ct-d-tot-kg',  'R$'+fSU(ctTotal,2)+'/kg');
   setS('ct-d-kw-total',fSU(kw_total_ind,0));
   const margemEl = document.getElementById('su-ct-margem');
