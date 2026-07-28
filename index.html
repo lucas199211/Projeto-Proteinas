@@ -1008,24 +1008,18 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
               <div class="su-sub-item"><div class="su-sub-lbl">Capacidade por unidade</div><div class="su-sub-val" id="sub-t-cap">— m³/h</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Fase sólida (seca)</div><div class="su-sub-val" id="sub-t-sol">— t/dia</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Fase óleo</div><div class="su-sub-val" id="sub-t-oil">— t/dia</div></div>
-            </div>
-            <div style="margin-top:8px;background:var(--s2);border-radius:5px;padding:8px 10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <span class="su-sub-lbl">% de gordura na MP (rendimento)</span>
-                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-t-gordura-val">10%</span>
+              <div class="su-sub-item">
+                <div class="su-sub-lbl" style="display:flex;justify-content:space-between;">% gordura na MP (rendimento)<span id="sub-t-gordura-val" style="color:var(--c-amber);font-weight:700;">10%</span></div>
+                <input type="range" min="2" max="25" step="0.5" value="10"
+                  oninput="SU.gorduraMP=+this.value;document.getElementById('sub-t-gordura-val').textContent=this.value+'%';renderScaleup()"
+                  style="width:100%;accent-color:var(--c-amber);margin-top:4px;" id="su-gordura-sl">
               </div>
-              <input type="range" min="2" max="25" step="0.5" value="10"
-                oninput="SU.gorduraMP=+this.value;document.getElementById('sub-t-gordura-val').textContent=this.value+'%';renderScaleup()"
-                style="width:100%;accent-color:var(--c-amber);" id="su-gordura-sl">
-            </div>
-            <div style="margin-top:8px;background:var(--s2);border-radius:5px;padding:8px 10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                <span class="su-sub-lbl">% de recuperação (eficiência do tridecanter)</span>
-                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-t-eficoleo-val">65%</span>
+              <div class="su-sub-item">
+                <div class="su-sub-lbl" style="display:flex;justify-content:space-between;">% de recuperação<span id="sub-t-eficoleo-val" style="color:var(--c-amber);font-weight:700;">65%</span></div>
+                <input type="range" min="0" max="100" step="1" value="65"
+                  oninput="SU.eficOleo=+this.value;document.getElementById('sub-t-eficoleo-val').textContent=this.value+'%';renderScaleup()"
+                  style="width:100%;accent-color:var(--c-amber);margin-top:4px;" id="su-eficoleo-sl">
               </div>
-              <input type="range" min="30" max="90" step="1" value="65"
-                oninput="SU.eficOleo=+this.value;document.getElementById('sub-t-eficoleo-val').textContent=this.value+'%';renderScaleup()"
-                style="width:100%;accent-color:var(--c-amber);" id="su-eficoleo-sl">
             </div>
           </div>
 
