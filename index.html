@@ -733,9 +733,9 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         <div class="pr">
           <div class="pr-head">
             <span class="pr-lbl">Energia elétrica industrial (R$/kWh)</span>
-            <span class="pr-val editable su-editable" data-su="eletInd" data-min="0.20" data-max="3.00">R$ 0,45</span>
+            <span class="pr-val editable su-editable" data-su="eletInd" data-min="0.20" data-max="3.00">R$ 0,80</span>
           </div>
-          <input type="range" min="0.20" max="3.00" step="0.01" value="0.45" style="width:100%;accent-color:var(--c-amber);"
+          <input type="range" min="0.20" max="3.00" step="0.01" value="0.80" style="width:100%;accent-color:var(--c-amber);"
             oninput="SU.eletInd=+this.value;renderScaleup()">
           <div class="pr-note">Grupo A (média tensão) demanda contratada: R$0,35–0,50/kWh · piloto usa tarifa B3 (R$0,72) · <span id="su-elet-dia">— kW · — R$/dia</span></div>
         </div>
@@ -751,9 +751,9 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         <div class="pr">
           <div class="pr-head">
             <span class="pr-lbl">Preço do cavaco/biomassa (R$/ton)</span>
-            <span class="pr-val editable su-editable" data-su="custoCavaco" data-min="150" data-max="800">R$ 300</span>
+            <span class="pr-val editable su-editable" data-su="custoCavaco" data-min="150" data-max="800">R$ 400</span>
           </div>
-          <input type="range" min="150" max="800" step="10" value="300" style="width:100%;accent-color:var(--c-amber);"
+          <input type="range" min="150" max="800" step="10" value="400" style="width:100%;accent-color:var(--c-amber);"
             id="su-biom-preco-sl"
             oninput="SU.custoCavaco=+this.value;renderScaleup()">
           <div class="pr-note">Custo total calculado pelo consumo real (secador + caldeira): <span id="su-biom-custo" style="font-weight:700;color:var(--c-amber);">—</span><br>
@@ -1201,9 +1201,9 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
             <div style="margin-top:8px;background:var(--s2);border-radius:5px;padding:8px 10px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                 <span class="su-sub-lbl">Preço cavaco industrial (R$/ton)</span>
-                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-b-cav-val">R$ 300/ton</span>
+                <span style="font-size:12px;font-weight:700;color:var(--c-amber);" id="sub-b-cav-val">R$ 400/ton</span>
               </div>
-              <input type="range" min="100" max="600" step="10" value="300"
+              <input type="range" min="100" max="600" step="10" value="400"
                 oninput="SU.custoCavaco=+this.value;document.getElementById('sub-b-cav-val').textContent='R$ '+this.value+'/ton';renderScaleup()"
                 style="width:100%;accent-color:var(--c-amber);" id="su-cavaco-sl">
               <div style="font-size:8px;color:var(--t3);margin-top:3px;">
@@ -3688,7 +3688,7 @@ async function loadSnapshot(){
       });
       const critSU={mpTdia:320,volReatorInd:25,cicloInd:285,htInd:40,langFactor:4.8,
         custoEqM3:45000,pvInd:8.0,biInd:7,borInd:18,bevInd:50,penPct:20,
-        custoMPind:0.40,custoCavaco:300,custoEnzInd:12,enzDoseInd:1.0,pvOleoInd:2.5,eletInd:0.45,
+        custoMPind:0.40,custoCavaco:400,custoEnzInd:12,enzDoseInd:1.0,pvOleoInd:2.5,eletInd:0.80,
         moOp:8,moCusto:4500,manutPct:3.0,seguroPct:0.8,gorduraMP:10,eficOleo:65,freteMP:30};
       Object.keys(critSU).forEach(k=>{
         if(typeof SU[k]!=='number' || !isFinite(SU[k])) SU[k]=critSU[k];
@@ -3835,8 +3835,8 @@ const SU={
   nEfeitos:3, compVapor:'none',
   atomizacao:'disco', fonteDryer:'vapor', dryerFp:4.5,
   penPct:20,
-  custoMPind:0.40, custoCavaco:300,
-  custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.45,
+  custoMPind:0.40, custoCavaco:400,
+  custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.80,
   biInd:7, borInd:18, bevInd:50,
   capexMode:'lang',
   // Cada item: {sel:0, cot:[4 cotações: {v,f,l,p,g}]}
@@ -4208,7 +4208,7 @@ function renderScaleup(){
   if(!isFinite(SU.locacaoMes)) SU.locacaoMes = 0;
   if(!isFinite(SU.embalKg))    SU.embalKg    = 0.28;
   if(!isFinite(SU.cipCustoH))  SU.cipCustoH  = 150;
-  if(!isFinite(SU.custoCavaco))SU.custoCavaco= 300;
+  if(!isFinite(SU.custoCavaco))SU.custoCavaco= 400;
   if(!isFinite(SU.impVendaPct))SU.impVendaPct= 13;
   if(!isFinite(SU.depAnos))    SU.depAnos    = 10;
   if(!isFinite(SU.pctFin))     SU.pctFin     = 0;
@@ -4325,7 +4325,7 @@ function renderScaleup(){
   const stComMargem      = stTotalComInativ * 1.20; // t/h — para especificar o equipamento
   // Custo OPEX usa carga real SEM margem (operação real ≠ capacidade instalada)
   const kgCavacoH_boil   = stTotalComInativ * 1000 / FUEL.cavaco.ksp; // ton cavaco/h
-  const boilCostH        = kgCavacoH_boil * (SU.custoCavaco||300); // R$/h
+  const boilCostH        = kgCavacoH_boil * (SU.custoCavaco||400); // R$/h
 
   // GLP dryer (quando fonte ≠ vapor)
   const glpDryH   = (P.dryGlpReal/50)*aguaDryH; // kg/h GLP
@@ -4433,7 +4433,7 @@ function renderScaleup(){
   const kw_tanquesMP  = qTanquesMP_kw/COP_refrigMP;      // kW elétricos (compressor)
   const kw_total_ind = kw_bombas+kw_trid+kw_mf+kw_or+kw_evap_aux+kw_dryer_aux+kw_torres
                        +kw_caldeira_aux+kw_compressores+kw_tanquesMP;
-  const eletTarifa   = SU.eletInd || 0.45;    // R$/kWh industrial (Grupo A), não a tarifa do piloto
+  const eletTarifa   = SU.eletInd || 0.80;    // R$/kWh industrial (Grupo A), não a tarifa do piloto
   const eletCostH    = kw_total_ind * eletTarifa; // R$/h
   // boilCostH já calculado acima com todos os consumidores + margem 20%
   // Dryer: custo pelo combustível selecionado (vapor→0 extra pois já em boilCostH)
@@ -4557,7 +4557,7 @@ function renderScaleup(){
   const custoSanit  = vCipL*0.0002*25;                    // R$ sanitizante perácido (~R$25/kg)
   const qCipKj      = vCipL*4.18*(75-25);                 // kJ p/ aquecer a solução
   const vaporCip    = qCipKj/(2133*0.85);                 // kg vapor
-  const custoVapCip = (vaporCip/FUEL.cavaco.ksp)*(SU.custoCavaco||300);
+  const custoVapCip = (vaporCip/FUEL.cavaco.ksp)*(SU.custoCavaco||400);
   const custoEflCip = (vCipL/1000)*3.06;                  // R$ efluente (tarifa água/esgoto média)
   const cipEstimadoH= (custoSoda+custoAcido+custoSanit+custoVapCip+custoEflCip)/1.5;
   setS('su-cip-estimate', 'R$ '+fSU(cipEstimadoH,0)+'/h (soda R$'+fSU(custoSoda,0)+' + ácido R$'+fSU(custoAcido,0)+' + sanit. R$'+fSU(custoSanit,0)+' + vapor R$'+fSU(custoVapCip,0)+' + efl. R$'+fSU(custoEflCip,0)+', ciclo de 1,5h)');
@@ -4573,13 +4573,13 @@ function renderScaleup(){
   const biomRsDia  = boilCostH * 24;                 // R$/dia
   setS('su-biom-custo', 'R$ '+fSU(biomRsDia/1000,1)+' mil/dia');
   setS('su-biom-note',
-    'Preço: R$ '+fSU(SU.custoCavaco||300,0)+'/ton · consumo '+fSU(biomTonH,2)+' t cavaco/h ('+fSU(biomTonH*24,1)+' t/dia) · '+
+    'Preço: R$ '+fSU(SU.custoCavaco||400,0)+'/ton · consumo '+fSU(biomTonH,2)+' t cavaco/h ('+fSU(biomTonH*24,1)+' t/dia) · '+
     'vapor: evap '+fSU(stEvapH/1000,2)+' + dryer '+fSU(stDryerPre/1000,2)+' + reatores '+fSU(stReatH/1000,2)+
     ' + inativ '+fSU(stInativKgh_pre/1000,2)+' = '+fSU(stTotalComInativ,2)+' t/h · R$ '+fSU(powder_h>0?boilCostH/powder_h:0,2)+'/kg pó');
   // Sincroniza o slider de preco do cavaco (existe em 2 pontos da tela)
   ['su-biom-preco-sl','su-cavaco-sl'].forEach(id=>{
     const e=document.getElementById(id);
-    if(e && +e.value !== (SU.custoCavaco||300)) e.value = SU.custoCavaco||300;
+    if(e && +e.value !== (SU.custoCavaco||400)) e.value = SU.custoCavaco||400;
   });
 
   // OPEX completo por hora: variável + MO + fixos (manut+seguro) + extras
@@ -4876,7 +4876,7 @@ function renderScaleup(){
   const A_phe=Q_phe_kw*1000/(2000*35);
   const st_inativ_kgh=(Q_phe_kw*3600)/(2133*0.85);         // kg vapor/h (sem /1000 — bug anterior)
   const st_inativ_h_t=st_inativ_kgh/1000;                  // t/h — para balanço da caldeira
-  const custo_inativ=(st_inativ_kgh/FUEL.cavaco.ksp)*(SU.custoCavaco||300); // R$/h via cavaco industrial
+  const custo_inativ=(st_inativ_kgh/FUEL.cavaco.ksp)*(SU.custoCavaco||400); // R$/h via cavaco industrial
   setBar('su-bar-inativ',(Q_phe_kw/3000)*100);
   setS('su-eq-inativ',  fSU(Q_phe_kw,0)+' kW térmicos');   // carga térmica (vapor no PHE) — não é consumo elétrico
   setS('su-spec-inativ','PHE '+fSU(A_phe,0)+' m² · holding DN150 '+fSU(L_tube,0)+' m (serp. vert.) · 90°C / 15 min');
@@ -4985,9 +4985,9 @@ function renderScaleup(){
     combH=(Q_dryer_kw/0.75)*3600/2133; // kg vapor/h
     // Custo: kg vapor/h ÷ ksp(kg vapor/ton cavaco) × R$/ton cavaco
     // FUEL.cavaco.ksp = 4432 kg vapor/ton cavaco
-    custoDryH=(combH/FUEL.cavaco.ksp)*(SU.custoCavaco||300); // R$/h (sem /1000 extra)
+    custoDryH=(combH/FUEL.cavaco.ksp)*(SU.custoCavaco||400); // R$/h (sem /1000 extra)
     fuelUnitStr='kg vapor/h'; fuelLblStr='Vapor caldeira (12-16 bar)';
-    fuelNoteStr='Air-heater: vapor 12-16 bar(187-201°C)→ar 175°C→câmara · sem zona ATEX · carga entra na caldeira · custo via cavaco (R$'+fSU(SU.custoCavaco||300,0)+'/ton)';
+    fuelNoteStr='Air-heater: vapor 12-16 bar(187-201°C)→ar 175°C→câmara · sem zona ATEX · carga entra na caldeira · custo via cavaco (R$'+fSU(SU.custoCavaco||400,0)+'/ton)';
   } else {
     combH=Q_dryer_kw/0.98; custoDryH=combH*eletTarifa;
     fuelUnitStr='kW elétrico'; fuelLblStr='Elétrico';
@@ -5024,8 +5024,8 @@ function renderScaleup(){
   setS('sub-b-esp',   fSU(cespH,3)+' kg cavaco/kg vapor (caldeira típica: 0,20–0,28)');
   setS('sub-b-custo', 'R$ '+fSU(boilCostH,0)+'/h (s/ margem 20%)');
   const slCav=document.getElementById('su-cavaco-sl');
-  if(slCav) slCav.value=SU.custoCavaco||300;
-  setS('sub-b-cav-val','R$ '+(SU.custoCavaco||300)+'/ton');
+  if(slCav) slCav.value=SU.custoCavaco||400;
+  setS('sub-b-cav-val','R$ '+(SU.custoCavaco||400)+'/ton');
   setBar('su-bar-boil',(stComMargem/20)*100);
   setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,1)+' t/h equipamento');
   setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald,2):'')+' t/h real');
@@ -5044,7 +5044,7 @@ function renderScaleup(){
   // Elétrica (bombas e máquinas) — consumo total já calculado acima para o custo (eletCostH)
   setBar('su-bar-eletrica',(kw_total_ind/1000)*100);
   setS('su-eq-eletrica',  fSU(kw_total_ind,0)+' kW');
-  setS('su-spec-eletrica','R$ '+fSU(eletCostH,0)+'/h · '+fSU(SU.eletInd||0.45,2)+' R$/kWh');
+  setS('su-spec-eletrica','R$ '+fSU(eletCostH,0)+'/h · '+fSU(SU.eletInd||0.80,2)+' R$/kWh');
   setS('sub-el-bombas', fSU(kw_bombas,0)+' kW');
   setS('sub-el-trid',   fSU(kw_trid,0)+' kW');
   setS('sub-el-mf',     fSU(kw_mf,0)+' kW');
