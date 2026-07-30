@@ -539,8 +539,8 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <div class="pr-note">Concentrado sai do evaporador a ~50°C · isolar o tanque pulmão economiza GLP</div>
     </div>
     <div class="pr">
-      <div class="pr-head"><span class="pr-lbl">Temp. de trabalho (°C)</span><span class="pr-val editable" data-key="dryTwork" data-min="120" data-max="250">195°C</span></div>
-      <input type="range" min="120" max="250" step="5" value="195" oninput="P.dryTwork=+this.value;render()">
+      <div class="pr-head"><span class="pr-lbl">Temp. de trabalho (°C)</span><span class="pr-val editable" data-key="dryTwork" data-min="120" data-max="250">180°C</span></div>
+      <input type="range" min="120" max="250" step="5" value="180" oninput="P.dryTwork=+this.value;render()">
     </div>
     <div class="pr">
       <div class="pr-head"><span class="pr-lbl">Temp. saída do ar (°C)</span><span class="pr-val editable" data-key="dryTout" data-min="60" data-max="120">85°C</span></div>
@@ -2029,7 +2029,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         padding:2px 6px;border-radius:4px;vertical-align:middle;">⚠ ACIMA CAP.</span>
     </div>
     <div class="ns" id="n-dry">cap. 50 L/h · recebe — L/h</div>
-    <div class="nf" id="n-dry-thermal" style="color:var(--steam);">ar: 25→195°C · água evap.: — kg/h</div>
+    <div class="nf" id="n-dry-thermal" style="color:var(--steam);">ar: 25→180°C · água evap.: — kg/h</div>
     <div class="nopex" style="border-color:var(--c-blue-bd);">
       <div style="font-size:9px;color:var(--t3);font-weight:700;">OPEX</div>
       <div class="nr"><span class="nl">GLP (direto)</span><span class="nv" id="op-dry-v">— R$/h</span></div>
@@ -2941,7 +2941,7 @@ const P={
   moCusto:2.5,
   boil:800,ht:30,fuel:'glp',fp:4.50,elet:0.72,
   pt:15,pm:4,po:7,pe:3,pd:8,ptw:0.45,tbu:24.6,
-  dryTamb:25,dryTwork:195,dryTout:85,dryUmid:4.0,dryEff:85,dryFp:4.50,dryTfeed:50,dryGlpReal:5.0
+  dryTamb:25,dryTwork:180,dryTout:85,dryUmid:4.0,dryEff:85,dryFp:4.50,dryTfeed:50,dryGlpReal:5.0
 };
 
 // Formato de exibição para cada parâmetro editável (usado no clique-para-editar)
@@ -3796,7 +3796,7 @@ function reset(){
   P.moCusto=2.5;
   P.boil=800;P.ht=30;P.fuel='glp';P.fp=4.50;P.elet=0.72;
   P.pt=15;P.pm=4;P.po=7;P.pe=3;P.pd=8;P.ptw=0.45;P.tbu=24.6;
-  P.dryTamb=25;P.dryTwork=195;P.dryTout=85;P.dryUmid=4.0;P.dryEff=85;P.dryFp=4.50;P.dryTfeed=50;P.dryGlpReal=5.0;
+  P.dryTamb=25;P.dryTwork=180;P.dryTout=85;P.dryUmid=4.0;P.dryEff=85;P.dryFp=4.50;P.dryTfeed=50;P.dryGlpReal=5.0;
   document.querySelectorAll('input[type=range]').forEach(el=>{
     el.value=el.defaultValue;
     el.max=el.getAttribute('max'); // restaura max original do HTML
@@ -4356,31 +4356,31 @@ function renderScaleup(){
     20);
 
   // 2. Tridecanter — 2 un. de 15.000 L/h fixas (1 operando + 1 standby), valor em m³/h
-  equip('trid', licorH/1000, fSU(licorH/1000,1)+' m³/h',
+  equip('trid', licorH/1000, fSU(licorH/1000,2)+' m³/h',
     '2 un. horizontais 3 fases (1 standby) · 15.000 L/h cada · clarificação + desgordur.',
     15);
 
   // 3. Microfiltração — valor em m³/h, maxVal = 25 m³/h
   const mfH = licorH * mfr;
-  equip('mf', mfH/1000, fSU(mfH/1000,1)+' m³/h',
+  equip('mf', mfH/1000, fSU(mfH/1000,2)+' m³/h',
     Math.ceil(mfH/3000)+' skid(s) · tubular cerâmica/PVDF · 0,1–0,5 bar · CIP automático',
     25);
 
   // 4. Osmose Reversa — valor em m³/h, maxVal = 20 m³/h
   // 5. NF 1 kDa: feed = permeado MF, retentado → EVAPORADOR direto
-  equip('nf', mfFeedH/1000, fSU(mfFeedH/1000,1)+' m³/h feed',
+  equip('nf', mfFeedH/1000, fSU(mfFeedH/1000,2)+' m³/h feed',
     Math.max(1,Math.ceil(mfFeedH/2500))+' skid(s) · 1 kDa · 10–20 bar · ret. → evap · perm. → OR recup. água',
     25);
 
   // 6. OR: recupera água do permeado NF (não toca no produto)
-  equip('or', nfPermH_calc/1000, fSU(nfPermH_calc*0.88/1000,1)+' m³/h água recup.',
+  equip('or', nfPermH_calc/1000, fSU(nfPermH_calc*0.88/1000,2)+' m³/h água recup.',
     Math.max(1,Math.ceil(nfPermH_calc/3000))+' skid(s) · espiral LP · 15–25 bar · reúso processo',
     15);
 
 
 
   // 5. Evaporador — valor em m³/h entrada, maxVal = 10 m³/h
-  equip('evap', evapInH/1000, fSU(evapInH/1000,1)+' m³/h entrada',
+  equip('evap', evapInH/1000, fSU(evapInH/1000,2)+' m³/h entrada',
     'Multi-efeito · '+fSU(aguaEvapH/1000,1)+' t/h água evap. · TVR ou MVR',
     10);
 
@@ -4391,8 +4391,8 @@ function renderScaleup(){
     : SU.fonteDryer==='elet'
       ? 'Elétrico ~'+fSU(Q_dryer_pre/0.98,0)+' kW'
       : 'GLP ~'+fSU(glpDryH,0)+' kg/h';
-  equip('dryer', aguaDryH/1000, fSU(aguaDryH/1000,1)+' t/h água evap.',
-    'Câmara + leito fluidizado · '+dryerFonteStr+' · T entrada ar: ~195°C',
+  equip('dryer', aguaDryH/1000, fSU(aguaDryH/1000,2)+' t/h água evap.',
+    'Câmara + leito fluidizado · '+dryerFonteStr+' · T entrada ar: ~180°C',
     5);
 
   // 7. Caldeira — valor em t/h vapor, maxVal = 20 t/h
@@ -4880,7 +4880,7 @@ function renderScaleup(){
   const st_inativ_h_t=st_inativ_kgh/1000;                  // t/h — para balanço da caldeira
   const custo_inativ=(st_inativ_kgh/FUEL.cavaco.ksp)*(SU.custoCavaco||400); // R$/h via cavaco industrial
   setBar('su-bar-inativ',(Q_phe_kw/3000)*100);
-  setS('su-eq-inativ',  fSU(Q_phe_kw,0)+' kW térmicos');   // carga térmica (vapor no PHE) — não é consumo elétrico
+  setS('su-eq-inativ',  fSU(Q_phe_kw,2)+' kW térmicos');   // carga térmica (vapor no PHE) — não é consumo elétrico
   setS('su-spec-inativ','PHE '+fSU(A_phe,0)+' m² · holding DN150 '+fSU(L_tube,0)+' m (serp. vert.) · 90°C / 15 min');
   setS('sub-i-phe',  fSU(A_phe,0)+' m² (U≈2.000 W/m²K)');
   setS('sub-i-tube', fSU(L_tube,0)+' m serpentina vert. (DN100 geraria '+fSU(L_tube*2.25,0)+'m — imprat.)');
@@ -4905,7 +4905,7 @@ function renderScaleup(){
   const A_resf    = Q_resf_kw*1000/(2000*40);         // m² — U≈2.000 W/m²K, mesma referência do PHE de inativação
   const aguaResfH = Q_resf_kw*3.6/(4.18*8);           // m³/h água de resfriamento (ΔT 8°C, mesma referência da torre)
   setBar('su-bar-resf',(Q_resf_kw/3000)*100);
-  setS('su-eq-resf',  fSU(Q_resf_kw,0)+' kW térmicos');
+  setS('su-eq-resf',  fSU(Q_resf_kw,2)+' kW térmicos');
   setS('su-spec-resf','PHE contracorrente · '+fSU(A_resf,0)+' m² · 90°C → 50°C');
   setS('sub-r-phe',  fSU(A_resf,0)+' m² (U≈2.000 W/m²K)');
   setS('sub-r-agua', fSU(aguaResfH,0)+' m³/h (ΔT 8°C)');
@@ -5029,13 +5029,13 @@ function renderScaleup(){
   if(slCav) slCav.value=SU.custoCavaco||400;
   setS('sub-b-cav-val','R$ '+(SU.custoCavaco||400)+'/ton');
   setBar('su-bar-boil',(stComMargem/20)*100);
-  setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,1)+' t/h equipamento');
+  setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,2)+' t/h equipamento');
   setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald,2):'')+' t/h real');
   // Torre de resfriamento
   const torreKw=condensKw+Q_phe_kw*0.3+Q_resf_kw;
   const torreFlow=torreKw*3.6/(4.18*8);
   setBar('su-bar-torre',(torreKw/10000)*100);
-  setS('su-eq-torre',  fSU(torreFlow,0)+' m³/h');
+  setS('su-eq-torre',  fSU(torreFlow,2)+' m³/h');
   setS('su-spec-torre',fSU(torreKw,0)+' kW · cond. evap. + PHE + resfriamento');
   setS('sub-to-evap',  fSU(condensKw,0)+' kW');
   setS('sub-to-phe',   fSU(Q_phe_kw*0.3,0)+' kW');
@@ -5045,7 +5045,7 @@ function renderScaleup(){
 
   // Elétrica (bombas e máquinas) — consumo total já calculado acima para o custo (eletCostH)
   setBar('su-bar-eletrica',(kw_total_ind/1000)*100);
-  setS('su-eq-eletrica',  fSU(kw_total_ind,0)+' kW');
+  setS('su-eq-eletrica',  fSU(kw_total_ind,2)+' kW');
   setS('su-spec-eletrica','R$ '+fSU(eletCostH,0)+'/h · '+fSU(SU.eletInd||0.80,2)+' R$/kWh');
   setS('sub-el-bombas', fSU(kw_bombas,0)+' kW');
   setS('sub-el-trid',   fSU(kw_trid,0)+' kW');
