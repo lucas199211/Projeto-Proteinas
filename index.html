@@ -4959,7 +4959,7 @@ function renderScaleup(){
   const torrenH=condensKw*3.6/(4.18*8);
   setS('sub-ev-taxa', fSU(taxaBase,3)+' kg vapor/kg água');
   setS('sub-ev-vap',  fSU(stEvapNew,2)+' t/h (1 ef. seria '+fSU(aguaEvapH*1.1/1000,1)+'t/h)');
-  setS('sub-ev-conc', fSU(evapInH/1000,1)+' m³/h');
+  setS('sub-ev-conc', fSU(concMassH/rhoB(bev)/1000,1)+' m³/h');
   setS('sub-ev-brix', fSU(bev,1));
   setS('sub-ev-tvr',  comp==='tvr'?'razão ~'+fSU(0.6/taxaBase,1)+' (limite: <2,0)':comp==='mvr'?'MVR elétrico — sem limite de razão':'N/A');
   setS('sub-ev-torre',fSU(condensKw,0)+' kW · '+fSU(torrenH,0)+' m³/h');
