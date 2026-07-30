@@ -548,8 +548,8 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <div class="pr-note">Ar de exaustão · típico 80–95°C</div>
     </div>
     <div class="pr">
-      <div class="pr-head"><span class="pr-lbl">Umidade residual do pó (%)</span><span class="pr-val editable" data-key="dryUmid" data-min="2" data-max="10">5.0%</span></div>
-      <input type="range" min="2" max="10" step="0.5" value="5" oninput="P.dryUmid=+this.value;render()">
+      <div class="pr-head"><span class="pr-lbl">Umidade residual do pó (%)</span><span class="pr-val editable" data-key="dryUmid" data-min="2" data-max="10">4.0%</span></div>
+      <input type="range" min="2" max="10" step="0.5" value="4" oninput="P.dryUmid=+this.value;render()">
     </div>
     <div class="pr">
       <div class="pr-head"><span class="pr-lbl">Eficiência queimador GLP (%)</span><span class="pr-val editable" data-key="dryEff" data-min="60" data-max="95">85%</span></div>
@@ -2941,7 +2941,7 @@ const P={
   moCusto:2.5,
   boil:800,ht:30,fuel:'glp',fp:4.50,elet:0.72,
   pt:15,pm:4,po:7,pe:3,pd:8,ptw:0.45,tbu:24.6,
-  dryTamb:25,dryTwork:195,dryTout:85,dryUmid:5.0,dryEff:85,dryFp:4.50,dryTfeed:50,dryGlpReal:5.0
+  dryTamb:25,dryTwork:195,dryTout:85,dryUmid:4.0,dryEff:85,dryFp:4.50,dryTfeed:50,dryGlpReal:5.0
 };
 
 // Formato de exibição para cada parâmetro editável (usado no clique-para-editar)
@@ -3796,7 +3796,7 @@ function reset(){
   P.moCusto=2.5;
   P.boil=800;P.ht=30;P.fuel='glp';P.fp=4.50;P.elet=0.72;
   P.pt=15;P.pm=4;P.po=7;P.pe=3;P.pd=8;P.ptw=0.45;P.tbu=24.6;
-  P.dryTamb=25;P.dryTwork=195;P.dryTout=85;P.dryUmid=5.0;P.dryEff=85;P.dryFp=4.50;P.dryTfeed=50;P.dryGlpReal=5.0;
+  P.dryTamb=25;P.dryTwork=195;P.dryTout=85;P.dryUmid=4.0;P.dryEff=85;P.dryFp=4.50;P.dryTfeed=50;P.dryGlpReal=5.0;
   document.querySelectorAll('input[type=range]').forEach(el=>{
     el.value=el.defaultValue;
     el.max=el.getAttribute('max'); // restaura max original do HTML
@@ -4286,13 +4286,15 @@ function renderScaleup(){
   const concMassH = evapMassH * (brixEvapIn/bev);
   const aguaEvapH = evapMassH - concMassH; // kg/h água a evaporar
 
-  // Pó produzido
+  // Pó produzido — conservação de sólidos (100%), sem fator de "recuperação" extra:
+  // conferido contra o balanço de massa real do fornecedor do secador (alimentação ×
+  // Brix_entrada/Brix_saída, sem perda assumida)
   const solidsBev = evapMassH * (brixEvapIn/100);
-  const powder_h  = solidsBev * 0.885;     // kg/h pó (rec. 88,5%)
+  const powder_h  = solidsBev;             // kg/h pó
   const poDia     = powder_h * 24 / 1000;  // t/dia
 
-  // Água evaporada no dryer
-  const po_umido  = powder_h / (1-0.05);
+  // Água evaporada no dryer — umidade final do slider "Umidade residual do pó" (P.dryUmid)
+  const po_umido  = powder_h / (1-(P.dryUmid/100));
   const aguaDryH  = Math.max(0, concMassH - po_umido); // kg/h
 
   // ── Óleo recuperado (calculado aqui pois é parte do balanço de massa) ──
