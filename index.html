@@ -4382,7 +4382,7 @@ function renderScaleup(){
 
   // 5. Evaporador — valor em m³/h entrada, maxVal = 10 m³/h
   equip('evap', evapInH/1000, fSU(evapInH/1000,2)+' m³/h entrada',
-    'Multi-efeito · '+fSU(aguaEvapH/1000,1)+' t/h água evap. · TVR ou MVR',
+    'Multi-efeito · '+fSU(brixEvapIn,1)+'°Brix entrada · ρ '+fSU(rhoB(brixEvapIn),2)+' kg/L · '+fSU(aguaEvapH/1000,1)+' t/h água evap. · TVR ou MVR',
     10);
 
   // 6. Spray Dryer — valor em t/h água evap., maxVal = 5 t/h
@@ -4393,7 +4393,7 @@ function renderScaleup(){
       ? 'Elétrico ~'+fSU(Q_dryer_pre/0.98,0)+' kW'
       : 'GLP ~'+fSU(glpDryH,0)+' kg/h';
   equip('dryer', aguaDryH/1000, fSU(aguaDryH/1000,2)+' t/h água evap.',
-    'Câmara + leito fluidizado · '+dryerFonteStr+' · T entrada ar: ~180°C',
+    'Câmara + leito fluidizado · '+fSU(bev,1)+'°Brix entrada · ρ '+fSU(rhoB(bev),2)+' kg/L · '+dryerFonteStr+' · T entrada ar: ~180°C',
     5);
 
   // 7. Caldeira — valor em t/h vapor, maxVal = 20 t/h
