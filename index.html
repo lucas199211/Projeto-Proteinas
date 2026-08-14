@@ -943,7 +943,19 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <div class="su-sub-panel" id="sub-reatores">
             <div class="su-sub-grid">
               <div class="su-sub-item"><div class="su-sub-lbl">Consumo específico vapor</div><div class="su-sub-val" id="sub-r-vapor">— kg/bat</div></div>
-              <div class="su-sub-item"><div class="su-sub-lbl">Offset entre bateladas</div><div class="su-sub-val" id="sub-r-offset">— min</div></div>
+              <div class="su-sub-item">
+                <div class="su-sub-lbl" style="display:flex;justify-content:space-between;align-items:center;">
+                  <span>Offset entre bateladas</span>
+                  <label style="font-size:9px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer;color:var(--t2);">
+                    <input type="checkbox" id="su-offset-manual-chk" onchange="SU.offsetManualOn=this.checked;renderScaleup()" style="margin:0;">
+                    manual
+                  </label>
+                </div>
+                <div class="su-sub-val" id="sub-r-offset">— min</div>
+                <input type="range" id="su-offset-manual-sl" min="10" max="200" step="1" value="60"
+                  style="width:100%;accent-color:var(--c-amber);margin-top:4px;display:none;"
+                  oninput="SU.offsetManual=+this.value;renderScaleup()">
+              </div>
               <div class="su-sub-item"><div class="su-sub-lbl">MP por batelada</div><div class="su-sub-val" id="sub-r-mpbat">— t/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Enzima por batelada</div><div class="su-sub-val" id="sub-r-enz">— kg/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Tempo aquecimento</div><div class="su-sub-val" id="sub-r-ht">— min · ΔT 51°C</div></div>
@@ -3839,6 +3851,7 @@ const SU={
   custoMPind:0.40, custoCavaco:400,
   custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.80,
   biInd:7, borInd:18, bevInd:50,
+  offsetManualOn:false, offsetManual:60,
   capexMode:'lang',
   // Cada item: {sel:0, cot:[4 cotações: {v,f,l,p,g}]}
   capexReal:{
@@ -4258,7 +4271,8 @@ function renderScaleup(){
   const mpBat    = SU.volReatorInd * 1000 * 0.40; // 40% vol: MP+água 1:1, 20% folga+agitador
   const batDia   = (mpKg_h * 24) / mpBat;
   const nReat    = Math.ceil(batDia * (SU.cicloInd/60) / 24);
-  const offsetMin = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0;
+  const offsetMinCalc = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0;
+  const offsetMin = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
 
   // Fluxo contínuo de licor (bateladas → linha contínua via tanque pulmão)
   const batVolLiq = mpBat * 2 * (1-pen);  // L licor/bat
@@ -4864,7 +4878,14 @@ function renderScaleup(){
   const stBatReat=(mpBat*2*3.8*51/(SU.htInd*60)*3600)/(2133*0.85);
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
-  setS('sub-r-offset',offsetMin+' min entre bateladas');
+  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':''));
+  const offChk=document.getElementById('su-offset-manual-chk');
+  if(offChk) offChk.checked=!!SU.offsetManualOn;
+  const offSl=document.getElementById('su-offset-manual-sl');
+  if(offSl){
+    offSl.style.display=SU.offsetManualOn?'block':'none';
+    offSl.value=SU.offsetManual||offsetMinCalc;
+  }
   setS('sub-r-mpbat', fSU(mpBat/1000,1)+' t/bat');
   setS('sub-r-enz',   fSU(mpBat*enzDose,0)+' kg/bat ('+fSU(enzDose*100,2)+'%)');
   setS('sub-r-ht',    SU.htInd+' min · ΔT 51°C (MP 4→55°C)');
