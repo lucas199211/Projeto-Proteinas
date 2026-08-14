@@ -4270,7 +4270,11 @@ function renderScaleup(){
   // Batelada industrial
   const mpBat    = SU.volReatorInd * 1000 * 0.40; // 40% vol: MP+água 1:1, 20% folga+agitador
   const batDia   = (mpKg_h * 24) / mpBat;
-  const nReat    = Math.ceil(batDia * (SU.cicloInd/60) / 24);
+  const nReatMin = Math.ceil(batDia * (SU.cicloInd/60) / 24); // mínimo p/ dar conta da produção (MP t/dia)
+  // Offset manual: exige mais reatores se pedir escalonamento mais apertado que o mínimo
+  // (nunca reduz abaixo do mínimo — produção continua vindo só do slider MP t/dia)
+  const nReatOffset = (SU.offsetManualOn && SU.offsetManual>0) ? Math.ceil(SU.cicloInd/SU.offsetManual) : nReatMin;
+  const nReat    = Math.max(nReatMin, nReatOffset);
   const offsetMinCalc = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0;
   const offsetMin = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
 
@@ -4878,7 +4882,8 @@ function renderScaleup(){
   const stBatReat=(mpBat*2*3.8*51/(SU.htInd*60)*3600)/(2133*0.85);
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
-  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':''));
+  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':'')
+    +(nReatOffset>nReatMin?' — +'+(nReatOffset-nReatMin)+' reator(es) p/ sustentar este offset':''));
   const offChk=document.getElementById('su-offset-manual-chk');
   if(offChk) offChk.checked=!!SU.offsetManualOn;
   const offSl=document.getElementById('su-offset-manual-sl');
