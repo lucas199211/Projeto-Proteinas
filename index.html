@@ -919,7 +919,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <div style="background:var(--s2);border:1px solid var(--b1);border-radius:9px;padding:12px;">
         <div class="su-sec-title">⚖️ Balanço de Massa Industrial (24h)</div>
         <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">
-          <div class="su-card"><div class="su-card-lbl">Entrada MP</div><div class="su-card-val" id="su-bm-mp">—</div><div class="su-card-unit">t/dia</div></div>
+          <div class="su-card"><div class="su-card-lbl">Entrada MP</div><div class="su-card-val" id="su-bm-mp">—</div><div class="su-card-unit" id="su-bm-mp-unit">t/dia</div></div>
           <div class="su-card"><div class="su-card-lbl">Licor (após sep.)</div><div class="su-card-val" id="su-bm-licor">—</div><div class="su-card-unit">m³/dia</div></div>
           <div class="su-card"><div class="su-card-lbl">Água evap. (evap.)</div><div class="su-card-val" id="su-bm-agua-evap">—</div><div class="su-card-unit">t/dia</div></div>
           <div class="su-card"><div class="su-card-lbl">Água evap. (dryer)</div><div class="su-card-val" id="su-bm-agua-dry">—</div><div class="su-card-unit">t/dia</div></div>
@@ -4281,18 +4281,23 @@ function renderScaleup(){
   const rhoB = b => 1+b*0.004;
 
   // MP/h nominal (sem desconto de disp → a disp afeta OPEX anual, não fluxo horário da linha)
-  const mpKg_h = SU.mpTdia * 1000 / 24;
+  const mpKg_hMeta = SU.mpTdia * 1000 / 24; // meta de MP/dia definida pelo usuário (slider)
 
   // Batelada industrial
-  const mpBat    = SU.volReatorInd * 1000 * 0.40; // 40% vol: MP+água 1:1, 20% folga+agitador
-  const batDia   = (mpKg_h * 24) / mpBat;
-  const nReatMin = Math.ceil(batDia * (SU.cicloInd/60) / 24); // mínimo p/ dar conta da produção (MP t/dia)
-  // Offset manual: exige mais reatores se pedir escalonamento mais apertado que o mínimo
-  // (nunca reduz abaixo do mínimo — produção continua vindo só do slider MP t/dia)
+  const mpBat      = SU.volReatorInd * 1000 * 0.40; // 40% vol: MP+água 1:1, 20% folga+agitador
+  const batDiaMeta = (mpKg_hMeta * 24) / mpBat;       // bateladas/dia p/ atender só a meta de MP
+  const nReatMin   = Math.ceil(batDiaMeta * (SU.cicloInd/60) / 24); // mínimo p/ dar conta da meta de MP
+  // Offset manual: exige mais reatores se pedir escalonamento mais apertado que o mínimo.
+  // Quando isso acontece, a capacidade extra passa a ser USADA — produção real (bateladas/dia)
+  // sobe para o que os reatores sustentam nesse ritmo, e mpKg_h (usado em todo o resto do
+  // balanço de massa/custos) reflete o processado real, não só a meta do slider.
   const nReatOffset = (SU.offsetManualOn && SU.offsetManual>0) ? Math.ceil(SU.cicloInd/SU.offsetManual) : nReatMin;
   const nReat    = Math.max(nReatMin, nReatOffset);
   const offsetMinCalc = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0;
   const offsetMin = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
+  const batDiaCap  = nReat * (1440/SU.cicloInd);   // bateladas/dia sustentáveis pelos reatores nesse offset
+  const batDia     = (SU.offsetManualOn && nReat>nReatMin) ? batDiaCap : batDiaMeta;
+  const mpKg_h     = batDia * mpBat / 24;          // MP realmente processada (kg/h) — pode superar a meta
 
   // Fluxo contínuo de licor (bateladas → linha contínua via tanque pulmão)
   const batVolLiq = mpBat * 2 * (1-pen);  // L licor/bat
@@ -4383,7 +4388,8 @@ function renderScaleup(){
   const stTotalH  = stTotalComInativ; // t/h (já com todos os consumidores, sem margem)
 
   // ── Balanço de massa: displays ──
-  setS('su-bm-mp',       fSU(SU.mpTdia,0));
+  setS('su-bm-mp',       fSU(mpKg_h*24/1000,0));
+  setS('su-bm-mp-unit',  mpKg_h>mpKg_hMeta?'t/dia (meta: '+fSU(SU.mpTdia,0)+')':'t/dia');
   setS('su-bm-licor',    fSU(licorH*24/1000,0));
   setS('su-bm-agua-evap',fSU(aguaEvapH*24/1000,1));
   setS('su-bm-agua-dry', fSU(aguaDryH*24/1000,1));
@@ -4499,7 +4505,7 @@ function renderScaleup(){
   const opPkg  = powder_h > 0 ? opH/powder_h : 0;
 
   // Displays de insumos
-  setS('su-mp-dia-custo',  'R$ '+fSU(mpCostH*24/1000,1)+' mil/dia · '+fSU(SU.mpTdia,0)+' t/dia');
+  setS('su-mp-dia-custo',  'R$ '+fSU(mpCostH*24/1000,1)+' mil/dia · '+fSU(mpKg_h*24/1000,0)+' t/dia');
   setS('su-enz-dia-custo', fSU(mpKg_h*enzDose*24/1000,1)+' t/dia enzima');
   setS('su-frete-dia',     'R$ '+fSU(freteCostH*24/1000,1)+' mil/dia');
   const mpp=powder_h>0?mpCostH/powder_h:0;
@@ -4910,7 +4916,7 @@ function renderScaleup(){
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
   setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':'')
-    +(nReatOffset>nReatMin?' — +'+(nReatOffset-nReatMin)+' reator(es) p/ sustentar este offset':''));
+    +(nReatOffset>nReatMin?' — +'+(nReatOffset-nReatMin)+' reator(es) · produção sobe p/ '+fSU(batDiaCap,1)+' bat/dia ('+fSU(mpKg_h*24/1000,0)+' t/dia MP, meta era '+fSU(SU.mpTdia,0)+')':''));
   const offChk=document.getElementById('su-offset-manual-chk');
   if(offChk) offChk.checked=!!SU.offsetManualOn;
   const offSl=document.getElementById('su-offset-manual-sl');
