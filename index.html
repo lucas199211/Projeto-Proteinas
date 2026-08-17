@@ -955,6 +955,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
                 <input type="range" id="su-offset-manual-sl" min="10" max="200" step="1" value="60"
                   style="width:100%;accent-color:var(--c-amber);margin-top:4px;display:none;"
                   oninput="SU.offsetManual=+this.value;renderScaleup()">
+                <div id="sub-r-offset-impact" style="font-size:9px;color:var(--t2);margin-top:4px;line-height:1.4;display:none;"></div>
               </div>
               <div class="su-sub-item"><div class="su-sub-lbl">MP por batelada</div><div class="su-sub-val" id="sub-r-mpbat">— t/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Enzima por batelada</div><div class="su-sub-val" id="sub-r-enz">— kg/bat</div></div>
@@ -4914,14 +4915,34 @@ function renderScaleup(){
   const stBatReat=(mpBat*2*3.8*51/(SU.htInd*60)*3600)/(2133*0.85);
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
-  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':'')
-    +(nReatOffset>nReatMin?' — ⚠ abaixo do natural c/ '+nReatMin+' reator(es) da meta; precisaria de +'+(nReatOffset-nReatMin)+' reator(es) p/ sustentar (produção/reatores não mudam automaticamente)':''));
+  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':''));
   const offChk=document.getElementById('su-offset-manual-chk');
   if(offChk) offChk.checked=!!SU.offsetManualOn;
   const offSl=document.getElementById('su-offset-manual-sl');
   if(offSl){
     offSl.style.display=SU.offsetManualOn?'block':'none';
     offSl.value=SU.offsetManual||offsetMinCalc;
+  }
+  // Nota de impacto: mostra o que MUDARIA se você de fato usasse esse ritmo — sem
+  // aplicar nada de verdade (reatores/produção continuam presos à meta de MP acima).
+  // Capacidade = quantos t/dia um dado nº de reatores comporta rodando no limite.
+  const impactEl=document.getElementById('sub-r-offset-impact');
+  if(impactEl){
+    if(SU.offsetManualOn){
+      const capNaturalTdia = nReatMin*(1440/SU.cicloInd)*mpBat/1000;
+      if(nReatOffset>nReatMin){
+        const capOffsetTdia = nReatOffset*(1440/SU.cicloInd)*mpBat/1000;
+        impactEl.style.display='block';
+        impactEl.textContent = 'Ritmo natural dos '+nReatMin+' reator(es) da meta: '+offsetMinCalc+' min (até '+fSU(capNaturalTdia,0)+' t/dia). '
+          +'Pedido de '+SU.offsetManual+' min é mais apertado — precisaria de '+nReatOffset+' reator(es) (+'+(nReatOffset-nReatMin)+') p/ sustentar, o que abriria capacidade até '+fSU(capOffsetTdia,0)+' t/dia. '
+          +'Isso NÃO muda a produção/custos do modelo — pra usar essa capacidade de verdade, suba a meta de MP/dia acima p/ até '+fSU(capOffsetTdia,0)+' t/dia.';
+      } else {
+        impactEl.style.display='block';
+        impactEl.textContent = 'Dentro do ritmo natural dos '+nReatMin+' reator(es) da meta (até '+offsetMinCalc+' min, capacidade '+fSU(capNaturalTdia,0)+' t/dia) — reatores e produção não mudam.';
+      }
+    } else {
+      impactEl.style.display='none';
+    }
   }
   setS('sub-r-mpbat', fSU(mpBat/1000,1)+' t/bat');
   setS('sub-r-enz',   fSU(mpBat*enzDose,0)+' kg/bat ('+fSU(enzDose*100,2)+'%)');
