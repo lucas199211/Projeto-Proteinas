@@ -3846,7 +3846,7 @@ const SU={
   impVendaPct:13.0, depAnos:10, pctFin:0, jurosAa:12.0, irpjPct:34.0,
   moOp:8, moCusto:4500,
   manutPct:3.0, seguroPct:0.8,
-  nEfeitos:3, compVapor:'none',
+  nEfeitos:2, compVapor:'tvr',
   atomizacao:'disco', fonteDryer:'vapor', dryerFp:4.5,
   penPct:20,
   custoMPind:0.40, custoCavaco:400,
@@ -4340,8 +4340,13 @@ function renderScaleup(){
   const Q_inativ_kw_pre = (licorH*1.05*3.8*(90-55))/3600; // kW
   const stInativKgh_pre = (Q_inativ_kw_pre*3600)/(2133*0.85); // kg vapor/h PHE
   // Dryer a vapor (se selecionado)
-  const Q_dryer_pre = (aguaDryH*2450/0.85)/3600; // kW
-  const stDryerPre  = (SU.fonteDryer==='vapor') ? (Q_dryer_pre/0.75)*3600/2133 : 0; // kg/h
+  const Q_dryer_pre = (aguaDryH*2450/0.85)/3600; // kW — usado só nas fontes GLP/elétrica abaixo
+  // Vapor: razão empírica calibrada com o orçamento real RELCO #260283.1 (2.560 kg vapor /
+  // 831 kg água evaporada = 3,081 kg vapor/kg água). A fórmula teórica só pela entalpia de
+  // vaporização subestimava bastante — o consumo real do dryer é dominado pelo aquecimento
+  // do grande volume de ar de secagem (170-180°C), não só pela água evaporada
+  const RATIO_VAPOR_DRYER_RELCO = 3.081;
+  const stDryerPre  = (SU.fonteDryer==='vapor') ? aguaDryH*RATIO_VAPOR_DRYER_RELCO : 0; // kg/h
   // CIP: vapor não roda contínuo (só durante os ciclos), mas precisa entrar tanto no
   // dimensionamento quanto no custo da caldeira — diluído como média no mês inteiro
   const vCipL_pre     = SU.volReatorInd*1000*0.12;          // L de solução/ciclo
@@ -4440,8 +4445,8 @@ function renderScaleup(){
   const kw_trid      = licorH/1000 * 2.5;   // ~2,5 kW por m³/h (tridecanter)
   const kw_mf        = (licorH*mfr)/1000 * 8; // ~8 kW por m³/h (recirculação MF)
   const kw_or        = (licorH*mfr)/1000 * 25; // ~25 kW por m³/h a 40-60 bar (OR)
-  const kw_evap_aux  = 15;                   // ventiladores, vácuo, condensador
-  const kw_dryer_aux = 30;                   // ventiladores, atomizador
+  const kw_evap_aux  = 55;                   // ventiladores, vácuo, condensador — orçamento real RELCO #260283.1
+  const kw_dryer_aux = 365;                  // ventiladores, atomizador, exaustor — orçamento real RELCO #260283.1
   const kw_torres    = 20;                   // torre de resfriamento
   // Caldeira — auxiliares elétricos (bomba de alimentação, ventiladores FD/ID, esteira do cavaco)
   // Referência: caldeira aquotubular a biomassa de 10 t/h vapor ≈ 70 kW instalados em auxiliares;
@@ -4460,8 +4465,8 @@ function renderScaleup(){
   const qTanquesMP_kw = (U_tanqueMP*A_tanqueMP*dT_tanqueMP*4/1000)*1.3; // 4 tanques + 30% margem (conexões/tampas)
   const COP_refrigMP  = 3;                               // packaged chiller/DX neste diferencial térmico
   const kw_tanquesMP  = qTanquesMP_kw/COP_refrigMP;      // kW elétricos (compressor)
-  // CIP: bomba de recirculação + dosagem + agitador do skid — estimativa de porte
-  const kw_cip = 10;
+  // CIP: bomba de recirculação + dosagem + agitador do skid — orçamento real RELCO #260283.1
+  const kw_cip = 50;
   const kw_total_ind = kw_bombas+kw_trid+kw_mf+kw_or+kw_evap_aux+kw_dryer_aux+kw_torres
                        +kw_caldeira_aux+kw_compressores+kw_tanquesMP+kw_cip;
   const eletTarifa   = SU.eletInd || 0.80;    // R$/kWh industrial (Grupo A), não a tarifa do piloto
@@ -5018,14 +5023,14 @@ function renderScaleup(){
     fuelUnitStr='kg GLP/h'; fuelLblStr='GLP';
     fuelNoteStr='Queimador direto · zona ATEX obrigatória · PCI 46 MJ/kg eff. 85%';
   } else if(fonte==='vapor'){
-    // Air-heater vapor 12-16 bar: eff. transferência ~75% vs GLP direto
-    // hvap 12-16 bar ≈ 2133 kJ/kg; ar sai a ~175°C
-    combH=(Q_dryer_kw/0.75)*3600/2133; // kg vapor/h
+    // Razão empírica calibrada com o orçamento real RELCO #260283.1 (mesma de stDryerPre) —
+    // 2.560 kg vapor / 831 kg água evaporada = 3,081 kg vapor/kg água
+    combH=aguaDryH*RATIO_VAPOR_DRYER_RELCO; // kg vapor/h
     // Custo: kg vapor/h ÷ ksp(kg vapor/ton cavaco) × R$/ton cavaco
     // FUEL.cavaco.ksp = 4432 kg vapor/ton cavaco
     custoDryH=(combH/FUEL.cavaco.ksp)*(SU.custoCavaco||400); // R$/h (sem /1000 extra)
     fuelUnitStr='kg vapor/h'; fuelLblStr='Vapor caldeira (12-16 bar)';
-    fuelNoteStr='Air-heater: vapor 12-16 bar(187-201°C)→ar 175°C→câmara · sem zona ATEX · carga entra na caldeira · custo via cavaco (R$'+fSU(SU.custoCavaco||400,0)+'/ton)';
+    fuelNoteStr='Air-heater: vapor 12-16 bar(187-201°C)→ar 175°C→câmara · sem zona ATEX · carga entra na caldeira · custo via cavaco (R$'+fSU(SU.custoCavaco||400,0)+'/ton) · razão calibrada c/ orçamento real RELCO (3,081 kg vapor/kg água)';
   } else {
     combH=Q_dryer_kw/0.98; custoDryH=combH*eletTarifa;
     fuelUnitStr='kW elétrico'; fuelLblStr='Elétrico';
