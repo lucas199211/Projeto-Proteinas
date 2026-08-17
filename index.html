@@ -3861,8 +3861,9 @@ const SU={
     mf      :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
     nf      :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
     or      :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
-    evap    :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
-    dryer   :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
+    evap    :{sel:0,cot:[{v:9555000,f:'RELCO (Kovalus) #260283.1',l:'',p:'270 dias',g:'12 meses'},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
+    dryer   :{sel:0,cot:[{v:35643000,f:'RELCO (Kovalus) #260283.1',l:'',p:'270 dias',g:'12 meses'},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
+    cip     :{sel:0,cot:[{v:1877240,f:'RELCO (Kovalus) #260283.1',l:'',p:'270 dias',g:'12 meses'},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
     caldeira:{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
     civil   :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]},
     aux     :{sel:0,cot:[{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''},{v:0,f:'',l:'',p:'',g:''}]}
@@ -3892,6 +3893,7 @@ let CAPEX_ITEMS = [
   {k:'or'        , lbl:'Osmose Reversa (OR)'   },
   {k:'evap'      , lbl:'Evaporador'            },
   {k:'dryer'     , lbl:'Spray Dryer'           },
+  {k:'cip'       , lbl:'Central de limpeza CIP'},
   {k:'caldeira'  , lbl:'Caldeira biomassa'     },
   {k:'civil'     , lbl:'⚠ Obras civis (30–50%)', divider:true},
   {k:'aux'       , lbl:'Elétrica + instr. + PPCI (15–25%)'}
@@ -3956,6 +3958,13 @@ function removeCapexItem(itemKey){
 }
 
 
+// Cotações reais conhecidas (orçamento RELCO #260283.1, 14/08/2026) — usadas pra
+// semear os itens de CAPEX que ainda não foram preenchidos pelo usuário
+const CAPEX_SEED = {
+  evap : {v:9555000,  f:'RELCO (Kovalus) #260283.1', p:'270 dias', g:'12 meses'},
+  dryer: {v:35643000, f:'RELCO (Kovalus) #260283.1', p:'270 dias', g:'12 meses'},
+  cip  : {v:1877240,  f:'RELCO (Kovalus) #260283.1', p:'270 dias', g:'12 meses'},
+};
 function migrateCapex(){
   const empty = ()=>({v:0,f:'',l:'',p:'',g:''});
   // Migração: snapshot antigo tinha "separacao" agregado → move para tridec
@@ -3977,6 +3986,12 @@ function migrateCapex(){
         if(c.p===undefined) c.p='';
         if(c.g===undefined) c.g='';
       });
+    }
+    // Semeia cotação real se o item ainda estiver totalmente vazio (não sobrescreve
+    // nada que o usuário já tenha preenchido)
+    const seed = CAPEX_SEED[k];
+    if(seed && !SU.capexReal[k].cot.some(c=>c.v>0)){
+      SU.capexReal[k].cot[0] = {v:seed.v, f:seed.f, l:'', p:seed.p, g:seed.g};
     }
   });
 }
@@ -4348,12 +4363,13 @@ function renderScaleup(){
   const RATIO_VAPOR_DRYER_RELCO = 3.081;
   const stDryerPre  = (SU.fonteDryer==='vapor') ? aguaDryH*RATIO_VAPOR_DRYER_RELCO : 0; // kg/h
   // CIP: vapor não roda contínuo (só durante os ciclos), mas precisa entrar tanto no
-  // dimensionamento quanto no custo da caldeira — diluído como média no mês inteiro
-  const vCipL_pre     = SU.volReatorInd*1000*0.12;          // L de solução/ciclo
-  const qCipKj_pre    = vCipL_pre*4.18*(75-25);              // kJ p/ aquecer a solução
-  const vaporCip_pre  = qCipKj_pre/(2133*0.85);              // kg vapor por ciclo de CIP (1,5h)
-  const nCiclosCipMes = cipMes/1.5;                          // ciclos de CIP por mês
-  const stCipKgh_avg  = hMes>0 ? (nCiclosCipMes*vaporCip_pre)/hMes : 0; // kg/h médio no mês
+  // dimensionamento quanto no custo da caldeira — diluído como média no mês inteiro.
+  // Taxa real da Central CIP: orçamento RELCO #260283.1 (50 m³/h a 85°C, 1.500 kg
+  // vapor/h enquanto opera) — substitui a estimativa teórica anterior
+  const vCipL_pre     = SU.volReatorInd*1000*0.12;          // L de solução/ciclo (só p/ química — sem dado real da RELCO)
+  const vaporCipTaxa_RELCO = 1500;                          // kg/h de vapor — real RELCO, enquanto CIP opera
+  const vaporCip_cycle = vaporCipTaxa_RELCO*1.5;             // kg por ciclo de CIP (1,5h)
+  const stCipKgh_avg  = hMes>0 ? (vaporCipTaxa_RELCO*cipMes)/hMes : 0; // kg/h médio no mês
   // Total com margem 20% (margem = critério de DIMENSIONAMENTO do equipamento, não do OPEX)
   const stTotalComInativ = (stReatH + stEvapH + stInativKgh_pre + stDryerPre + stCipKgh_avg) / 1000; // t/h
   const stComMargem      = stTotalComInativ * 1.20; // t/h — para especificar o equipamento
@@ -4579,23 +4595,20 @@ function renderScaleup(){
   const extrasPkg   = kgMes > 0 ? extrasMes / kgMes : 0;
   const extrasH     = extrasMes / hMes;
 
-  // Estimativa de baixo pra cima do custo de CIP (preços de mercado aproximados,
-  // NÃO é cotação real — o slider acima continua editável e manda no custo usado).
-  // Premissas: volume de solução = 12% do reator industrial (dimensionamento típico
-  // de skid CIP recirculante); concentrações conforme nota da tela (soda 2%, ácido
-  // nítrico 1%, sanitizante 0,02%); água aquecida de 25°C a 75°C via a mesma
-  // caldeira/cavaco do resto da planta; efluente pela tarifa média de água/esgoto no
-  // Brasil (R$3,06/m³ — provavelmente subestima efluente de alta carga orgânica);
-  // ciclo completo (pré-enxágue+cáustico+enxágue+ácido+enxágue final) de 1,5h
-  // vCipL/qCipKj/vaporCip já calculados acima (vCipL_pre/qCipKj_pre/vaporCip_pre) — reaproveita
-  // pra não divergir do que entra no dimensionamento/custo real da caldeira
+  // Estimativa de baixo pra cima do custo de CIP — vapor já é dado real da RELCO
+  // (vaporCip_cycle, calculado acima); química/efluente continuam estimativa de mercado,
+  // pois a RELCO não abre dosagem química — o slider acima continua editável e manda
+  // no custo usado. Premissas químicas: volume de solução = 12% do reator industrial;
+  // concentrações conforme nota da tela (soda 2%, ácido nítrico 1%, sanitizante 0,02%);
+  // efluente pela tarifa média de água/esgoto no Brasil (R$3,06/m³ — provavelmente
+  // subestima efluente de alta carga orgânica); ciclo completo de 1,5h
   const custoSoda   = vCipL_pre*0.02*3.50;                // R$ soda cáustica (~R$3,50/kg)
   const custoAcido  = vCipL_pre*0.01*4.50;                // R$ ácido nítrico (~R$4,50/kg)
   const custoSanit  = vCipL_pre*0.0002*25;                // R$ sanitizante perácido (~R$25/kg)
-  const custoVapCip = (vaporCip_pre/FUEL.cavaco.ksp)*(SU.custoCavaco||400);
+  const custoVapCip = (vaporCip_cycle/FUEL.cavaco.ksp)*(SU.custoCavaco||400); // vapor real RELCO
   const custoEflCip = (vCipL_pre/1000)*3.06;              // R$ efluente (tarifa água/esgoto média)
   const cipEstimadoH= (custoSoda+custoAcido+custoSanit+custoVapCip+custoEflCip)/1.5;
-  setS('su-cip-estimate', 'R$ '+fSU(cipEstimadoH,0)+'/h (soda R$'+fSU(custoSoda,0)+' + ácido R$'+fSU(custoAcido,0)+' + sanit. R$'+fSU(custoSanit,0)+' + vapor R$'+fSU(custoVapCip,0)+' + efl. R$'+fSU(custoEflCip,0)+', ciclo de 1,5h)');
+  setS('su-cip-estimate', 'R$ '+fSU(cipEstimadoH,0)+'/h (soda R$'+fSU(custoSoda,0)+' + ácido R$'+fSU(custoAcido,0)+' + sanit. R$'+fSU(custoSanit,0)+' + vapor R$'+fSU(custoVapCip,0)+' + efl. R$'+fSU(custoEflCip,0)+', ciclo de 1,5h · vapor calibrado c/ RELCO)');
 
   // Displays dos novos custos
   setS('su-embal-dia',   'R$ '+fSU(embalMes/30,0)+'/dia · R$ '+fSU(SU.embalKg||0,2)+'/kg');
@@ -4999,7 +5012,8 @@ function renderScaleup(){
   if(comp==='mvr') condFactor = 0.10;  // MVR devolve quase tudo, carga residual ~10%
   const condensKw=(aguaCondH * condFactor * 2382)/3600;
   // Vazão da torre: kW → m³/h = kW × 3600 / (Cp × ΔT × ρ) = kW × 3.6 / (Cp × ΔT)
-  const torrenH=condensKw*3.6/(4.18*8);
+  // ΔT=11°C (30→41°C) — real orçamento RELCO #260283.1 p/ água de torre do evaporador (era ΔT8 estimado)
+  const torrenH=condensKw*3.6/(4.18*11);
   setS('sub-ev-taxa', fSU(taxaBase,3)+' kg vapor/kg água');
   setS('sub-ev-vap',  fSU(stEvapNew,2)+' t/h (1 ef. seria '+fSU(aguaEvapH*1.1/1000,1)+'t/h)');
   setS('sub-ev-conc', fSU(concMassH/rhoB(bev)/1000,1)+' m³/h');
@@ -5072,9 +5086,10 @@ function renderScaleup(){
   setBar('su-bar-boil',(stComMargem/20)*100);
   setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,2)+' t/h equipamento');
   setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald/1000,2):'')+' + CIP '+fSU(stCipKgh_avg/1000,3)+' t/h real');
-  // Torre de resfriamento
+  // Torre de resfriamento — condensador evap. usa ΔT real RELCO (11°C); PHE+resfriamento seguem ΔT8 (estimado, sem dado real)
   const torreKw=condensKw+Q_phe_kw*0.3+Q_resf_kw;
-  const torreFlow=torreKw*3.6/(4.18*8);
+  const torrePheResfFlow=(Q_phe_kw*0.3+Q_resf_kw)*3.6/(4.18*8);
+  const torreFlow=torrenH+torrePheResfFlow;
   setBar('su-bar-torre',(torreKw/10000)*100);
   setS('su-eq-torre',  fSU(torreFlow,2)+' m³/h');
   setS('su-spec-torre',fSU(torreKw,0)+' kW · cond. evap. + PHE + resfriamento');
