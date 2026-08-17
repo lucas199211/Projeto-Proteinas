@@ -1262,6 +1262,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
               <div class="su-sub-item"><div class="su-sub-lbl">Caldeira (aux. elétricos)</div><div class="su-sub-val" id="sub-el-caldeira">— kW</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Compressores de ar</div><div class="su-sub-val" id="sub-el-compressores">— kW</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Tanques MP resfriados (4×50m³ @ 4°C)</div><div class="su-sub-val" id="sub-el-tanques">— kW</div></div>
+              <div class="su-sub-item"><div class="su-sub-lbl">CIP (recirc. + dosagem + agitador)</div><div class="su-sub-val" id="sub-el-cip">— kW</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Custo</div><div class="su-sub-val" id="sub-el-custo" style="color:var(--c-teal);font-weight:700;">— R$/h</div></div>
             </div>
           </div>
@@ -4341,8 +4342,15 @@ function renderScaleup(){
   // Dryer a vapor (se selecionado)
   const Q_dryer_pre = (aguaDryH*2450/0.85)/3600; // kW
   const stDryerPre  = (SU.fonteDryer==='vapor') ? (Q_dryer_pre/0.75)*3600/2133 : 0; // kg/h
+  // CIP: vapor não roda contínuo (só durante os ciclos), mas precisa entrar tanto no
+  // dimensionamento quanto no custo da caldeira — diluído como média no mês inteiro
+  const vCipL_pre     = SU.volReatorInd*1000*0.12;          // L de solução/ciclo
+  const qCipKj_pre    = vCipL_pre*4.18*(75-25);              // kJ p/ aquecer a solução
+  const vaporCip_pre  = qCipKj_pre/(2133*0.85);              // kg vapor por ciclo de CIP (1,5h)
+  const nCiclosCipMes = cipMes/1.5;                          // ciclos de CIP por mês
+  const stCipKgh_avg  = hMes>0 ? (nCiclosCipMes*vaporCip_pre)/hMes : 0; // kg/h médio no mês
   // Total com margem 20% (margem = critério de DIMENSIONAMENTO do equipamento, não do OPEX)
-  const stTotalComInativ = (stReatH + stEvapH + stInativKgh_pre + stDryerPre) / 1000; // t/h
+  const stTotalComInativ = (stReatH + stEvapH + stInativKgh_pre + stDryerPre + stCipKgh_avg) / 1000; // t/h
   const stComMargem      = stTotalComInativ * 1.20; // t/h — para especificar o equipamento
   // Custo OPEX usa carga real SEM margem (operação real ≠ capacidade instalada)
   const kgCavacoH_boil   = stTotalComInativ * 1000 / FUEL.cavaco.ksp; // ton cavaco/h
@@ -4452,8 +4460,10 @@ function renderScaleup(){
   const qTanquesMP_kw = (U_tanqueMP*A_tanqueMP*dT_tanqueMP*4/1000)*1.3; // 4 tanques + 30% margem (conexões/tampas)
   const COP_refrigMP  = 3;                               // packaged chiller/DX neste diferencial térmico
   const kw_tanquesMP  = qTanquesMP_kw/COP_refrigMP;      // kW elétricos (compressor)
+  // CIP: bomba de recirculação + dosagem + agitador do skid — estimativa de porte
+  const kw_cip = 10;
   const kw_total_ind = kw_bombas+kw_trid+kw_mf+kw_or+kw_evap_aux+kw_dryer_aux+kw_torres
-                       +kw_caldeira_aux+kw_compressores+kw_tanquesMP;
+                       +kw_caldeira_aux+kw_compressores+kw_tanquesMP+kw_cip;
   const eletTarifa   = SU.eletInd || 0.80;    // R$/kWh industrial (Grupo A), não a tarifa do piloto
   const eletCostH    = kw_total_ind * eletTarifa; // R$/h
   // boilCostH já calculado acima com todos os consumidores + margem 20%
@@ -4572,14 +4582,13 @@ function renderScaleup(){
   // caldeira/cavaco do resto da planta; efluente pela tarifa média de água/esgoto no
   // Brasil (R$3,06/m³ — provavelmente subestima efluente de alta carga orgânica);
   // ciclo completo (pré-enxágue+cáustico+enxágue+ácido+enxágue final) de 1,5h
-  const vCipL       = SU.volReatorInd*1000*0.12;         // L de solução/ciclo
-  const custoSoda   = vCipL*0.02*3.50;                    // R$ soda cáustica (~R$3,50/kg)
-  const custoAcido  = vCipL*0.01*4.50;                    // R$ ácido nítrico (~R$4,50/kg)
-  const custoSanit  = vCipL*0.0002*25;                    // R$ sanitizante perácido (~R$25/kg)
-  const qCipKj      = vCipL*4.18*(75-25);                 // kJ p/ aquecer a solução
-  const vaporCip    = qCipKj/(2133*0.85);                 // kg vapor
-  const custoVapCip = (vaporCip/FUEL.cavaco.ksp)*(SU.custoCavaco||400);
-  const custoEflCip = (vCipL/1000)*3.06;                  // R$ efluente (tarifa água/esgoto média)
+  // vCipL/qCipKj/vaporCip já calculados acima (vCipL_pre/qCipKj_pre/vaporCip_pre) — reaproveita
+  // pra não divergir do que entra no dimensionamento/custo real da caldeira
+  const custoSoda   = vCipL_pre*0.02*3.50;                // R$ soda cáustica (~R$3,50/kg)
+  const custoAcido  = vCipL_pre*0.01*4.50;                // R$ ácido nítrico (~R$4,50/kg)
+  const custoSanit  = vCipL_pre*0.0002*25;                // R$ sanitizante perácido (~R$25/kg)
+  const custoVapCip = (vaporCip_pre/FUEL.cavaco.ksp)*(SU.custoCavaco||400);
+  const custoEflCip = (vCipL_pre/1000)*3.06;              // R$ efluente (tarifa água/esgoto média)
   const cipEstimadoH= (custoSoda+custoAcido+custoSanit+custoVapCip+custoEflCip)/1.5;
   setS('su-cip-estimate', 'R$ '+fSU(cipEstimadoH,0)+'/h (soda R$'+fSU(custoSoda,0)+' + ácido R$'+fSU(custoAcido,0)+' + sanit. R$'+fSU(custoSanit,0)+' + vapor R$'+fSU(custoVapCip,0)+' + efl. R$'+fSU(custoEflCip,0)+', ciclo de 1,5h)');
 
@@ -4632,12 +4641,12 @@ function renderScaleup(){
   // exibidas em R$ mil/mês. Maior → menor, descarta o que for ~0 (ex.: dryer
   // quando a fonte é vapor, ou qualquer custo zerado)
   const custoItens=[
-    {lbl:'Matéria prima',       mes:mpCostH*hMes,            kg:pkg(mpCostH)},
-    {lbl:'Enzima',              mes:enzCostH*hMes,           kg:pkg(enzCostH)},
-    {lbl:'Frete MP',            mes:freteCostH*hMes,         kg:pkg(freteCostH)},
-    {lbl:'Energia elétrica',    mes:eletCostH*hMes,          kg:pkg(eletCostH)},
-    {lbl:'Biomassa (caldeira)', mes:boilCostH*hMes,          kg:pkg(boilCostH)},
-    {lbl:dryFuelLbl,            mes:glpDryCostH*hMes,        kg:pkg(glpDryCostH)},
+    {lbl:'Matéria prima',       mes:mpCostH*hEfetivas,       kg:pkg(mpCostH)},
+    {lbl:'Enzima',              mes:enzCostH*hEfetivas,      kg:pkg(enzCostH)},
+    {lbl:'Frete MP',            mes:freteCostH*hEfetivas,    kg:pkg(freteCostH)},
+    {lbl:'Energia elétrica',    mes:eletCostH*hEfetivas,     kg:pkg(eletCostH)},
+    {lbl:'Biomassa (caldeira)', mes:boilCostH*hEfetivas,     kg:pkg(boilCostH)},
+    {lbl:dryFuelLbl,            mes:glpDryCostH*hEfetivas,   kg:pkg(glpDryCostH)},
     {lbl:'Mão de obra',         mes:moH*hMes,                kg:fSU(moPkg,2)},
     {lbl:'Manutenção + seguros',mes:(manutAno+seguroAno)/12, kg:fSU(manutPkg+seguroPkg,2)},
     {lbl:'Embalagens',          mes:embalMes,                kg:fSU(kgMes>0?embalMes/kgMes:0,2)},
@@ -4651,7 +4660,7 @@ function renderScaleup(){
     +'<td style="text-align:right;color:var(--c-amber);font-weight:600;padding-left:8px;">R$'+kgStr+'/kg</td>'
     +'</tr>';
   const tbodyHtml=custoItens.map(it=>rowHtml(it.lbl, fSU(it.mes/1000,1), it.kg, false)).join('')
-    +rowHtml('TOTAL', fSU(opHTotal*hMes/1000,1), fSU(ctTotal,2), true);
+    +rowHtml('TOTAL', fSU(opHTotal*hEfetivas/1000,1), fSU(ctTotal,2), true);
   const tbodyEl=document.getElementById('ct-detail-tbody');
   if(tbodyEl) tbodyEl.innerHTML=tbodyHtml;
   setS('ct-d-kw-total',fSU(kw_total_ind,0));
@@ -5046,8 +5055,8 @@ function renderScaleup(){
   const stDryerCald = stDryerPre;
   setS('sub-b-reat',  fSU(stReatH/1000,2)+' t/h médio (pico: '+fSU(stPicoH,1)+' t/h)');
   setS('sub-b-evap',  fSU(stEvapH/1000,2)+' t/h ('+nEf+' ef.'+(comp!=='none'?' + '+comp.toUpperCase():'')+ ')');
-  setS('sub-b-inativ',fSU(stInativKgh_pre,0)+' kg/h PHE 90°C'+(stDryerCald>0?' · dryer vapor: +'+fSU(stDryerCald*1000,0)+' kg/h':''));
-  setS('sub-b-total', fSU(stComMargem,2)+' t/h (c/ margem 20% · OPEX usa '+fSU(stTotalComInativ,2)+' t/h)');
+  setS('sub-b-inativ',fSU(stInativKgh_pre,0)+' kg/h PHE 90°C'+(stDryerCald>0?' · dryer vapor: +'+fSU(stDryerCald,0)+' kg/h':''));
+  setS('sub-b-total', fSU(stComMargem,2)+' t/h (c/ margem 20% · OPEX usa '+fSU(stTotalComInativ,2)+' t/h · inclui média de CIP: '+fSU(stCipKgh_avg,1)+' kg/h)');
   setS('sub-b-comb',  fSU(kgCavacoH_boil,3)+' ton/h cavaco');
   const cespH = kgCavacoH_boil / stTotalComInativ; // (ton cavaco/h) / (t vapor/h) = kg/kg
   setS('sub-b-esp',   fSU(cespH,3)+' kg cavaco/kg vapor (caldeira típica: 0,20–0,28)');
@@ -5057,7 +5066,7 @@ function renderScaleup(){
   setS('sub-b-cav-val','R$ '+(SU.custoCavaco||400)+'/ton');
   setBar('su-bar-boil',(stComMargem/20)*100);
   setS('su-eq-boil',  fSU(stTotalComInativ,2)+' t/h real · '+fSU(stComMargem,2)+' t/h equipamento');
-  setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald,2):'')+' t/h real');
+  setS('su-spec-boil','Cavaco · reat '+fSU(stReatH/1000,1)+' + evap '+fSU(stEvapH/1000,1)+' + inativ '+fSU(stInativKgh_pre/1000,2)+(stDryerCald>0?' + dry '+fSU(stDryerCald/1000,2):'')+' + CIP '+fSU(stCipKgh_avg/1000,3)+' t/h real');
   // Torre de resfriamento
   const torreKw=condensKw+Q_phe_kw*0.3+Q_resf_kw;
   const torreFlow=torreKw*3.6/(4.18*8);
@@ -5084,6 +5093,7 @@ function renderScaleup(){
   setS('sub-el-caldeira', fSU(kw_caldeira_aux,0)+' kW');
   setS('sub-el-compressores', fSU(kw_compressores,0)+' kW');
   setS('sub-el-tanques', fSU(kw_tanquesMP,1)+' kW');
+  setS('sub-el-cip',    fSU(kw_cip,0)+' kW');
   setS('sub-el-custo',  'R$ '+fSU(eletCostH,0)+'/h');
 }
 
