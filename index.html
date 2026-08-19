@@ -968,21 +968,37 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
                   style="width:100%;accent-color:var(--c-amber);margin-top:4px;"
                   oninput="SU.tCargaInd=+this.value;renderScaleup()">
               </div>
+              <div class="su-sub-item">
+                <div class="su-sub-lbl">Tempo de descarga (licor p/ peneira)</div>
+                <div class="su-sub-val" id="sub-r-tdescarga">— min</div>
+                <input type="range" id="su-tdescarga-sl" min="5" max="90" step="1" value="15"
+                  style="width:100%;accent-color:var(--c-purple);margin-top:4px;"
+                  oninput="SU.tDescargaInd=+this.value;renderScaleup()">
+              </div>
+              <div class="su-sub-item"><div class="su-sub-lbl">Reação (hidrólise) — calculado</div><div class="su-sub-val" id="sub-r-reacao">— min</div></div>
             </div>
 
             <!-- Gantt de escalonamento dos reatores -->
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b1);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
                 <span style="font-size:10px;color:var(--t2);">📊 Escalonamento dos reatores (bateladas intercaladas)</span>
                 <span style="font-size:9px;color:var(--t2);">
                   <span style="display:inline-block;width:8px;height:8px;background:var(--c-amber);border-radius:2px;margin-right:3px;"></span>carga
-                  <span style="display:inline-block;width:8px;height:8px;background:var(--c-teal);border-radius:2px;margin:0 3px 0 8px;"></span>reação/aquec.+descarga
+                  <span style="display:inline-block;width:8px;height:8px;background:var(--c-teal);border-radius:2px;margin:0 3px 0 8px;"></span>aquec.+reação
+                  <span style="display:inline-block;width:8px;height:8px;background:var(--c-purple);border-radius:2px;margin:0 3px 0 8px;"></span>descarga
                 </span>
               </div>
               <div id="su-gantt-wrap" style="overflow-x:auto;">
                 <div id="su-gantt" style="position:relative;min-width:600px;"></div>
               </div>
               <div id="su-gantt-note" style="font-size:9px;margin-top:6px;line-height:1.4;"></div>
+            </div>
+
+            <!-- Produção máxima por nº de reatores -->
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b1);">
+              <div style="font-size:10px;color:var(--t2);margin-bottom:6px;">📈 Produção máxima sustentável por nº de reatores</div>
+              <div id="su-reat-scale-table" style="font-size:9px;"></div>
+              <div id="su-reat-scale-note" style="font-size:9px;margin-top:6px;line-height:1.4;color:var(--t2);"></div>
             </div>
           </div>
 
@@ -3875,7 +3891,7 @@ const SU={
   custoMPind:0.40, custoCavaco:400,
   custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.80,
   biInd:7, borInd:18, bevInd:50,
-  offsetManualOn:false, offsetManual:60, tCargaInd:20,
+  offsetManualOn:false, offsetManual:60, tCargaInd:20, tDescargaInd:15,
   capexMode:'lang',
   // Cada item: {sel:0, cot:[4 cotações: {v,f,l,p,g}]}
   capexReal:{
@@ -4966,11 +4982,19 @@ function renderScaleup(){
       impactEl.style.display='none';
     }
   }
-  // Tempo de carregamento (carga de MP+água+enzima antes da reação) — alimenta o Gantt abaixo
+  // Tempos de cada fase da batelada — alimentam o Gantt e a simulação de capacidade abaixo.
+  // Sequência: carga → aquecimento → reação (hidrólise) → descarga. A reação é o que sobra
+  // do ciclo total depois de descontar as outras 3 fases (não tem slider próprio).
   const tCarga = SU.tCargaInd||20;
+  const tDescarga = SU.tDescargaInd||15;
+  const reacaoCalc = SU.cicloInd - tCarga - SU.htInd - tDescarga;
   setS('sub-r-tcarga', tCarga+' min');
+  setS('sub-r-tdescarga', tDescarga+' min');
+  setS('sub-r-reacao', reacaoCalc>=0 ? fSU(reacaoCalc,0)+' min' : '⚠ negativo — reduza carga/descarga ou aumente o ciclo');
   const tcSl=document.getElementById('su-tcarga-sl');
   if(tcSl) tcSl.value=tCarga;
+  const tdSl=document.getElementById('su-tdescarga-sl');
+  if(tdSl) tdSl.value=tDescarga;
 
   // ── Gantt de escalonamento dos reatores: como as bateladas se intercalam no tempo ──
   // Usa o cenário do offset MANUAL quando ligado (o "e se" que o usuário está explorando),
@@ -4985,7 +5009,9 @@ function renderScaleup(){
     const scale = Math.max(600/horizon, 1.3);              // px/min
     const W = Math.round(horizon*scale);
     const cargaConflict = tCarga > gOff;
+    const descargaConflict = tDescarga > gOff;
     const cargaColor = cargaConflict ? 'var(--c-red)' : 'var(--c-amber)';
+    const descargaColor = descargaConflict ? 'var(--c-red)' : 'var(--c-purple)';
 
     const tickStep = horizon<=240?15:(horizon<=600?30:60);
     let axisHtml='<div style="position:relative;height:14px;width:'+W+'px;margin-bottom:3px;">';
@@ -5000,11 +5026,13 @@ function renderScaleup(){
     for(let i=0;i<gN;i++){
       let barsHtml='';
       for(let start=i*gOff; start<horizon; start+=period){
-        const cargaW = Math.max(0, Math.min(tCarga, horizon-start));
-        const restoStart = start+tCarga;
-        const restoW = Math.max(0, Math.min(SU.cicloInd, horizon-start) - tCarga);
-        if(cargaW>0) barsHtml+='<div style="position:absolute;left:'+Math.round(start*scale)+'px;width:'+Math.max(2,Math.round(cargaW*scale))+'px;top:0;bottom:0;background:'+cargaColor+';border-radius:3px 0 0 3px;"></div>';
-        if(restoW>0) barsHtml+='<div style="position:absolute;left:'+Math.round(restoStart*scale)+'px;width:'+Math.max(2,Math.round(restoW*scale))+'px;top:0;bottom:0;background:var(--c-teal);border-radius:0 3px 3px 0;"></div>';
+        const b0=start, b1=start+tCarga, b2=start+Math.max(tCarga,SU.cicloInd-tDescarga), b3=start+SU.cicloInd;
+        const cargaW = Math.max(0, Math.min(b1,horizon)-b0);
+        const midW   = Math.max(0, Math.min(b2,horizon)-Math.min(b1,horizon));
+        const descW  = Math.max(0, Math.min(b3,horizon)-Math.min(b2,horizon));
+        if(cargaW>0) barsHtml+='<div style="position:absolute;left:'+Math.round(b0*scale)+'px;width:'+Math.max(2,Math.round(cargaW*scale))+'px;top:0;bottom:0;background:'+cargaColor+';border-radius:3px 0 0 3px;"></div>';
+        if(midW>0)   barsHtml+='<div style="position:absolute;left:'+Math.round(b1*scale)+'px;width:'+Math.max(2,Math.round(midW*scale))+'px;top:0;bottom:0;background:var(--c-teal);"></div>';
+        if(descW>0)  barsHtml+='<div style="position:absolute;left:'+Math.round(b2*scale)+'px;width:'+Math.max(2,Math.round(descW*scale))+'px;top:0;bottom:0;background:'+descargaColor+';border-radius:0 3px 3px 0;"></div>';
       }
       rowsHtml+='<div style="position:relative;height:18px;width:'+W+'px;margin-bottom:3px;background:var(--s1);border-radius:3px;">'
         +'<div style="position:absolute;left:3px;top:1px;font-size:8px;color:var(--t1);z-index:2;">R'+(i+1)+'</div>'
@@ -5014,12 +5042,58 @@ function renderScaleup(){
     ganttEl.innerHTML = axisHtml + rowsHtml;
 
     if(ganttNoteEl){
-      if(cargaConflict){
+      if(cargaConflict || descargaConflict){
         ganttNoteEl.style.color='var(--c-red)';
-        ganttNoteEl.textContent = '⚠ Carregamento ('+tCarga+' min) é mais longo que o offset ('+gOff+' min) — cargas de reatores consecutivos se sobrepõem. Só é viável com mais de uma linha de carga (bomba MP/água/dosagem enzima) em paralelo; senão, o offset mínimo praticável é '+tCarga+' min.';
+        const partes=[];
+        if(cargaConflict) partes.push('carregamento ('+tCarga+' min)');
+        if(descargaConflict) partes.push('descarga ('+tDescarga+' min)');
+        ganttNoteEl.textContent = '⚠ Tempo de '+partes.join(' e ')+' maior que o offset ('+gOff+' min) — essas fases de reatores consecutivos se sobrepõem. Só é viável com mais de uma linha em paralelo; senão, o offset mínimo praticável é '+Math.max(cargaConflict?tCarga:0,descargaConflict?tDescarga:0)+' min.';
       } else {
         ganttNoteEl.style.color='var(--t2)';
-        ganttNoteEl.textContent = 'Carregamentos não se sobrepõem — 1 linha de carga sustenta o ritmo. Padrão de '+gN+' reator(es) a cada '+gOff+' min se repete a cada '+fSU(period,0)+' min.'+(SU.offsetManualOn?' (cenário do offset manual — reatores/produção reais continuam presos à meta de MP acima)':' (ritmo natural da meta de MP)');
+        ganttNoteEl.textContent = 'Carga e descarga não se sobrepõem entre reatores — 1 linha de cada sustenta o ritmo. Padrão de '+gN+' reator(es) a cada '+gOff+' min se repete a cada '+fSU(period,0)+' min.'+(SU.offsetManualOn?' (cenário do offset manual — reatores/produção reais continuam presos à meta de MP acima)':' (ritmo natural da meta de MP)');
+      }
+    }
+  }
+
+  // ── Produção máxima sustentável por nº de reatores ──
+  // Para N reatores, o offset mais apertado fisicamente possível é o maior entre:
+  // (a) cicloInd/N — o que os reatores sozinhos permitem, e (b) tCarga/tDescarga — o
+  // que a linha de carga/descarga (compartilhada entre todos os reatores) permite.
+  // A partir de um certo N, (b) passa a mandar e novos reatores param de aumentar a
+  // capacidade — é o platô/gargalo do sistema.
+  const scaleTableEl=document.getElementById('su-reat-scale-table');
+  const scaleNoteEl=document.getElementById('su-reat-scale-note');
+  if(scaleTableEl){
+    const gargaloLinha = Math.max(tCarga, tDescarga);
+    const nMax = Math.max(nReatMin+3, Math.ceil(SU.cicloInd/Math.max(1,gargaloLinha))+2, 8);
+    let capPrev=0, nGargalo=null;
+    let rows='<div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.3fr 1.6fr;gap:4px;padding:3px 4px;color:var(--t3);font-weight:600;">'
+      +'<div>Reatores</div><div>Offset</div><div>Produção</div><div>Limitante</div></div>';
+    for(let n=1;n<=nMax;n++){
+      const offReat  = SU.cicloInd/n;         // min — o que N reatores sozinhos sustentam
+      const offN     = Math.max(offReat, gargaloLinha); // min — respeitando a linha de carga/descarga
+      const limitante = offN>offReat ? (tCarga>=tDescarga?'carga':'descarga') : 'reatores';
+      const capN = (1440/offN) * (mpBat/1000); // t/dia — 1440/offN já é a taxa de bateladas/dia do sistema inteiro (não multiplicar por n de novo)
+      const isMeta = n===nReatMin;
+      const isGargalo = limitante!=='reatores' && nGargalo===null;
+      if(isGargalo) nGargalo=n;
+      const ganho = n>1 ? capN-capPrev : capN;
+      capPrev=capN;
+      rows+='<div style="display:grid;grid-template-columns:1.1fr 1.3fr 1.3fr 1.6fr;gap:4px;padding:3px 4px;border-radius:3px;'
+        +(isMeta?'background:var(--c-amber-bg);':'')+(isGargalo?'border:1px solid var(--c-teal-bd);':'')+'">'
+        +'<div>'+n+(isMeta?' (meta)':'')+'</div>'
+        +'<div>'+fSU(offN,0)+' min</div>'
+        +'<div>'+fSU(capN,1)+' t/dia'+(n>1?' <span style="color:var(--t3);">(+'+fSU(ganho,1)+')</span>':'')+'</div>'
+        +'<div style="color:'+(limitante==='reatores'?'var(--t2)':'var(--c-teal)')+';">'+(limitante==='reatores'?'nº de reatores':'linha de '+limitante+' ('+gargaloLinha+' min)')+'</div>'
+        +'</div>';
+      if(nGargalo!==null && n>=nGargalo+2) break;
+    }
+    scaleTableEl.innerHTML = rows;
+    if(scaleNoteEl){
+      if(nGargalo!==null){
+        scaleNoteEl.textContent = 'A partir de '+nGargalo+' reator(es), a linha de '+(tCarga>=tDescarga?'carregamento':'descarga')+' ('+gargaloLinha+' min) vira o gargalo — reatores extras deixam de aumentar a produção, a não ser que se adicione uma 2ª linha de '+(tCarga>=tDescarga?'carga':'descarga')+' em paralelo. Linha destacada = quantidade de reatores da meta atual de MP.';
+      } else {
+        scaleNoteEl.textContent = 'Nesta faixa, o nº de reatores ainda é o fator limitante (carga/descarga folgados). Linha destacada = quantidade de reatores da meta atual de MP.';
       }
     }
   }
