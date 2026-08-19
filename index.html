@@ -961,6 +961,28 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
               <div class="su-sub-item"><div class="su-sub-lbl">Enzima por batelada</div><div class="su-sub-val" id="sub-r-enz">— kg/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Tempo aquecimento</div><div class="su-sub-val" id="sub-r-ht">— min · ΔT 51°C</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Pico de vapor (aquec.)</div><div class="su-sub-val" id="sub-r-vp">— t/h</div></div>
+              <div class="su-sub-item">
+                <div class="su-sub-lbl">Tempo de carregamento (MP+água+enzima)</div>
+                <div class="su-sub-val" id="sub-r-tcarga">— min</div>
+                <input type="range" id="su-tcarga-sl" min="5" max="90" step="1" value="20"
+                  style="width:100%;accent-color:var(--c-amber);margin-top:4px;"
+                  oninput="SU.tCargaInd=+this.value;renderScaleup()">
+              </div>
+            </div>
+
+            <!-- Gantt de escalonamento dos reatores -->
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b1);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:10px;color:var(--t2);">📊 Escalonamento dos reatores (bateladas intercaladas)</span>
+                <span style="font-size:9px;color:var(--t2);">
+                  <span style="display:inline-block;width:8px;height:8px;background:var(--c-amber);border-radius:2px;margin-right:3px;"></span>carga
+                  <span style="display:inline-block;width:8px;height:8px;background:var(--c-teal);border-radius:2px;margin:0 3px 0 8px;"></span>reação/aquec.+descarga
+                </span>
+              </div>
+              <div id="su-gantt-wrap" style="overflow-x:auto;">
+                <div id="su-gantt" style="position:relative;min-width:600px;"></div>
+              </div>
+              <div id="su-gantt-note" style="font-size:9px;margin-top:6px;line-height:1.4;"></div>
             </div>
           </div>
 
@@ -3853,7 +3875,7 @@ const SU={
   custoMPind:0.40, custoCavaco:400,
   custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.80,
   biInd:7, borInd:18, bevInd:50,
-  offsetManualOn:false, offsetManual:60,
+  offsetManualOn:false, offsetManual:60, tCargaInd:20,
   capexMode:'lang',
   // Cada item: {sel:0, cot:[4 cotações: {v,f,l,p,g}]}
   capexReal:{
@@ -4944,6 +4966,64 @@ function renderScaleup(){
       impactEl.style.display='none';
     }
   }
+  // Tempo de carregamento (carga de MP+água+enzima antes da reação) — alimenta o Gantt abaixo
+  const tCarga = SU.tCargaInd||20;
+  setS('sub-r-tcarga', tCarga+' min');
+  const tcSl=document.getElementById('su-tcarga-sl');
+  if(tcSl) tcSl.value=tCarga;
+
+  // ── Gantt de escalonamento dos reatores: como as bateladas se intercalam no tempo ──
+  // Usa o cenário do offset MANUAL quando ligado (o "e se" que o usuário está explorando),
+  // senão o ritmo natural dos reatores da meta — mesma lógica da nota de impacto acima.
+  const ganttEl=document.getElementById('su-gantt');
+  const ganttNoteEl=document.getElementById('su-gantt-note');
+  if(ganttEl){
+    const gN    = SU.offsetManualOn ? Math.max(nReatMin,nReatOffset) : nReatMin;
+    const gOff  = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
+    const period  = gN*gOff;                              // min p/ o padrão se repetir
+    const horizon = period + Math.min(period, SU.cicloInd*0.6);
+    const scale = Math.max(600/horizon, 1.3);              // px/min
+    const W = Math.round(horizon*scale);
+    const cargaConflict = tCarga > gOff;
+    const cargaColor = cargaConflict ? 'var(--c-red)' : 'var(--c-amber)';
+
+    const tickStep = horizon<=240?15:(horizon<=600?30:60);
+    let axisHtml='<div style="position:relative;height:14px;width:'+W+'px;margin-bottom:3px;">';
+    for(let t=0;t<=horizon;t+=tickStep){
+      const x=Math.round(t*scale);
+      axisHtml+='<div style="position:absolute;left:'+x+'px;top:0;bottom:-2px;border-left:1px solid var(--b1);"></div>'
+        +'<div style="position:absolute;left:'+(x+2)+'px;top:0;font-size:8px;color:var(--t3);">'+t+"'</div>";
+    }
+    axisHtml+='</div>';
+
+    let rowsHtml='';
+    for(let i=0;i<gN;i++){
+      let barsHtml='';
+      for(let start=i*gOff; start<horizon; start+=period){
+        const cargaW = Math.max(0, Math.min(tCarga, horizon-start));
+        const restoStart = start+tCarga;
+        const restoW = Math.max(0, Math.min(SU.cicloInd, horizon-start) - tCarga);
+        if(cargaW>0) barsHtml+='<div style="position:absolute;left:'+Math.round(start*scale)+'px;width:'+Math.max(2,Math.round(cargaW*scale))+'px;top:0;bottom:0;background:'+cargaColor+';border-radius:3px 0 0 3px;"></div>';
+        if(restoW>0) barsHtml+='<div style="position:absolute;left:'+Math.round(restoStart*scale)+'px;width:'+Math.max(2,Math.round(restoW*scale))+'px;top:0;bottom:0;background:var(--c-teal);border-radius:0 3px 3px 0;"></div>';
+      }
+      rowsHtml+='<div style="position:relative;height:18px;width:'+W+'px;margin-bottom:3px;background:var(--s1);border-radius:3px;">'
+        +'<div style="position:absolute;left:3px;top:1px;font-size:8px;color:var(--t1);z-index:2;">R'+(i+1)+'</div>'
+        +barsHtml+'</div>';
+    }
+    ganttEl.style.width=W+'px';
+    ganttEl.innerHTML = axisHtml + rowsHtml;
+
+    if(ganttNoteEl){
+      if(cargaConflict){
+        ganttNoteEl.style.color='var(--c-red)';
+        ganttNoteEl.textContent = '⚠ Carregamento ('+tCarga+' min) é mais longo que o offset ('+gOff+' min) — cargas de reatores consecutivos se sobrepõem. Só é viável com mais de uma linha de carga (bomba MP/água/dosagem enzima) em paralelo; senão, o offset mínimo praticável é '+tCarga+' min.';
+      } else {
+        ganttNoteEl.style.color='var(--t2)';
+        ganttNoteEl.textContent = 'Carregamentos não se sobrepõem — 1 linha de carga sustenta o ritmo. Padrão de '+gN+' reator(es) a cada '+gOff+' min se repete a cada '+fSU(period,0)+' min.'+(SU.offsetManualOn?' (cenário do offset manual — reatores/produção reais continuam presos à meta de MP acima)':' (ritmo natural da meta de MP)');
+      }
+    }
+  }
+
   setS('sub-r-mpbat', fSU(mpBat/1000,1)+' t/bat');
   setS('sub-r-enz',   fSU(mpBat*enzDose,0)+' kg/bat ('+fSU(enzDose*100,2)+'%)');
   setS('sub-r-ht',    SU.htInd+' min · ΔT 51°C (MP 4→55°C)');
