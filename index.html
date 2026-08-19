@@ -654,11 +654,9 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         <div class="pr">
           <div class="pr-head">
             <span class="pr-lbl">Ciclo do reator industrial (min)</span>
-            <span class="pr-val editable su-editable" data-su="cicloInd" data-min="120" data-max="480">285 min</span>
+            <span class="pr-val" id="su-ciclo-calc">285 min</span>
           </div>
-          <input type="range" min="120" max="480" step="5" value="285" style="width:100%;accent-color:var(--c-amber);"
-            oninput="SU.cicloInd=+this.value;renderScaleup()">
-          <div class="pr-note">Piloto validado: <span id="su-ciclo-piloto">—</span> min · ind.: 240–320 min típico</div>
+          <div class="pr-note">Calculado = carga + aquec. + reação + descarga (ajuste cada fase abaixo e no painel "1 · Reatores") · piloto validado: <span id="su-ciclo-piloto">—</span> min</div>
         </div>
 
         <div class="pr">
@@ -669,6 +667,16 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <input type="range" min="20" max="90" step="5" value="40" style="width:100%;accent-color:var(--c-amber);"
             oninput="SU.htInd=+this.value;renderScaleup()">
           <div class="pr-note">ΔT 51°C (MP 4°C → 55°C) · reator 25m³ precisa de mais tempo</div>
+        </div>
+
+        <div class="pr">
+          <div class="pr-head">
+            <span class="pr-lbl">Tempo de reação industrial — hidrólise (min)</span>
+            <span class="pr-val editable su-editable" data-su="reacaoInd" data-min="60" data-max="360">210 min</span>
+          </div>
+          <input type="range" min="60" max="360" step="5" value="210" style="width:100%;accent-color:var(--c-amber);"
+            oninput="SU.reacaoInd=+this.value;renderScaleup()">
+          <div class="pr-note">Hold time enzimático · carga e descarga são ajustadas no painel "1 · Reatores" abaixo</div>
         </div>
 
         <div class="pr-divider">Parâmetros de concentração</div>
@@ -943,20 +951,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <div class="su-sub-panel" id="sub-reatores">
             <div class="su-sub-grid">
               <div class="su-sub-item"><div class="su-sub-lbl">Consumo específico vapor</div><div class="su-sub-val" id="sub-r-vapor">— kg/bat</div></div>
-              <div class="su-sub-item">
-                <div class="su-sub-lbl" style="display:flex;justify-content:space-between;align-items:center;">
-                  <span>Offset entre bateladas</span>
-                  <label style="font-size:9px;font-weight:400;display:flex;align-items:center;gap:3px;cursor:pointer;color:var(--t2);">
-                    <input type="checkbox" id="su-offset-manual-chk" onchange="SU.offsetManualOn=this.checked;renderScaleup()" style="margin:0;">
-                    manual
-                  </label>
-                </div>
-                <div class="su-sub-val" id="sub-r-offset">— min</div>
-                <input type="range" id="su-offset-manual-sl" min="10" max="200" step="1" value="60"
-                  style="width:100%;accent-color:var(--c-amber);margin-top:4px;display:none;"
-                  oninput="SU.offsetManual=+this.value;renderScaleup()">
-                <div id="sub-r-offset-impact" style="font-size:9px;color:var(--t2);margin-top:4px;line-height:1.4;display:none;"></div>
-              </div>
+              <div class="su-sub-item"><div class="su-sub-lbl">Intervalo natural entre bateladas</div><div class="su-sub-val" id="sub-r-offset">— min</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">MP por batelada</div><div class="su-sub-val" id="sub-r-mpbat">— t/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Enzima por batelada</div><div class="su-sub-val" id="sub-r-enz">— kg/bat</div></div>
               <div class="su-sub-item"><div class="su-sub-lbl">Tempo aquecimento</div><div class="su-sub-val" id="sub-r-ht">— min · ΔT 51°C</div></div>
@@ -975,7 +970,6 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
                   style="width:100%;accent-color:var(--c-purple);margin-top:4px;"
                   oninput="SU.tDescargaInd=+this.value;renderScaleup()">
               </div>
-              <div class="su-sub-item"><div class="su-sub-lbl">Reação (hidrólise) — calculado</div><div class="su-sub-val" id="sub-r-reacao">— min</div></div>
             </div>
 
             <!-- Gantt de escalonamento dos reatores -->
@@ -3742,7 +3736,8 @@ async function loadSnapshot(){
       const critSU={mpTdia:320,volReatorInd:25,cicloInd:285,htInd:40,langFactor:4.8,
         custoEqM3:45000,pvInd:8.0,biInd:7,borInd:18,bevInd:50,penPct:20,
         custoMPind:0.40,custoCavaco:400,custoEnzInd:12,enzDoseInd:1.0,pvOleoInd:2.5,eletInd:0.80,
-        moOp:8,moCusto:4500,manutPct:3.0,seguroPct:0.8,gorduraMP:10,eficOleo:65,freteMP:30};
+        moOp:8,moCusto:4500,manutPct:3.0,seguroPct:0.8,gorduraMP:10,eficOleo:65,freteMP:30,
+        tCargaInd:20,tDescargaInd:15,reacaoInd:210};
       Object.keys(critSU).forEach(k=>{
         if(typeof SU[k]!=='number' || !isFinite(SU[k])) SU[k]=critSU[k];
       });
@@ -3891,7 +3886,7 @@ const SU={
   custoMPind:0.40, custoCavaco:400,
   custoEnzInd:200, enzDoseInd:0.20, freteMP:30, eletInd:0.80,
   biInd:7, borInd:18, bevInd:50,
-  offsetManualOn:false, offsetManual:60, tCargaInd:20, tDescargaInd:15,
+  tCargaInd:20, tDescargaInd:15, reacaoInd:210,
   capexMode:'lang',
   // Cada item: {sel:0, cot:[4 cotações: {v,f,l,p,g}]}
   capexReal:{
@@ -4288,7 +4283,7 @@ function renderScaleup(){
     const k=el.dataset.su, v=SU[k];
     if(v===undefined) return;
     // suffix por campo
-    const sufMap={mpTdia:'t/dia',volReatorInd:'m³',cicloInd:'min',htInd:'min',
+    const sufMap={mpTdia:'t/dia',volReatorInd:'m³',cicloInd:'min',htInd:'min',reacaoInd:'min',
                   cipH:'h/sem',stopH:'h/mês',langFactor:'×',
                   biInd:'°Brix',borInd:'°Brix',bevInd:'°Brix',depAnos:'anos'};
     // campos monetários: sempre 'R$ ' prefix + 2 decimais
@@ -4320,20 +4315,25 @@ function renderScaleup(){
   const rhoB = b => 1+b*0.004;
 
   // MP/h nominal (sem desconto de disp → a disp afeta OPEX anual, não fluxo horário da linha)
+  // ── Ciclo do reator = soma das 4 fases sequenciais (carga → aquec. → reação → descarga) ──
+  // Reduzir qualquer uma dessas fases reduz o ciclo total e, pela Lei de Little abaixo, reduz
+  // direto o nº de reatores necessários pra meta de MP (ou libera mais produção com o mesmo
+  // nº de reatores). Não existe mais um "offset" desacoplado do ciclo — o intervalo entre
+  // bateladas é só uma CONSEQUÊNCIA de ter N reatores, não um parâmetro à parte.
+  const tCarga    = SU.tCargaInd||20;
+  const tDescarga = SU.tDescargaInd||15;
+  const reacaoInd = SU.reacaoInd||210;
+  SU.cicloInd = tCarga + SU.htInd + reacaoInd + tDescarga;
+  setS('su-ciclo-calc', fSU(SU.cicloInd,0)+' min');
+
   const mpKg_hMeta = SU.mpTdia * 1000 / 24; // meta de MP/dia definida pelo usuário (slider)
 
   // Batelada industrial
   const mpBat      = SU.volReatorInd * 1000 * 0.40; // 40% vol: MP+água 1:1, 20% folga+agitador
   const batDiaMeta = (mpKg_hMeta * 24) / mpBat;       // bateladas/dia p/ atender a meta de MP
-  const nReatMin   = Math.ceil(batDiaMeta * (SU.cicloInd/60) / 24); // reatores exigidos pela meta de MP
-  // Reatores e produção ficam presos SÓ à meta de MP/dia — o offset manual não os altera.
-  // nReatOffset aqui é só informativo: quantos reatores SERIAM necessários pra sustentar
-  // o offset pedido, caso ele seja mais apertado que o natural dos reatores da meta
-  // (offsetMinCalc). Não é aplicado a nReat nem a batDia — vira só um aviso na tela.
+  const nReatMin   = Math.ceil(batDiaMeta * (SU.cicloInd/60) / 24); // reatores exigidos pela meta de MP (Lei de Little)
   const nReat      = nReatMin;
-  const nReatOffset = (SU.offsetManualOn && SU.offsetManual>0) ? Math.ceil(SU.cicloInd/SU.offsetManual) : nReatMin;
-  const offsetMinCalc = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0;
-  const offsetMin = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
+  const offsetMinCalc = nReat > 0 ? Math.round(SU.cicloInd/nReat) : 0; // intervalo natural entre bateladas (informativo)
   const batDia     = batDiaMeta;
   const mpKg_h     = mpKg_hMeta;
 
@@ -4444,7 +4444,7 @@ function renderScaleup(){
 
   // 1. Reatores — valor = n° unidades, maxVal = 20
   equip('reatores', nReat, nReat+'× '+SU.volReatorInd+'m³',
-    'offset '+offsetMin+' min entre bat. · ASME 316L meia-cana · MP '+fSU(mpBat/1000,1)+' t/bat · VFD hidrofoil',
+    'intervalo '+offsetMinCalc+' min entre bat. · ASME 316L meia-cana · MP '+fSU(mpBat/1000,1)+' t/bat · VFD hidrofoil',
     20);
 
   // 2. Tridecanter — 2 un. de 15.000 L/h fixas (1 operando + 1 standby), valor em m³/h
@@ -4953,57 +4953,21 @@ function renderScaleup(){
   const stBatReat=(mpBat*2*3.8*51/(SU.htInd*60)*3600)/(2133*0.85);
   const stPicoH=(stBatReat*nReat*(60/SU.cicloInd))/1000;
   setS('sub-r-vapor', fSU(stBatReat/1000,2)+' t vapor/bat');
-  setS('sub-r-offset',offsetMin+' min entre bateladas'+(SU.offsetManualOn?' (manual)':''));
-  const offChk=document.getElementById('su-offset-manual-chk');
-  if(offChk) offChk.checked=!!SU.offsetManualOn;
-  const offSl=document.getElementById('su-offset-manual-sl');
-  if(offSl){
-    offSl.style.display=SU.offsetManualOn?'block':'none';
-    offSl.value=SU.offsetManual||offsetMinCalc;
-  }
-  // Nota de impacto: mostra o que MUDARIA se você de fato usasse esse ritmo — sem
-  // aplicar nada de verdade (reatores/produção continuam presos à meta de MP acima).
-  // Capacidade = quantos t/dia um dado nº de reatores comporta rodando no limite.
-  const impactEl=document.getElementById('sub-r-offset-impact');
-  if(impactEl){
-    if(SU.offsetManualOn){
-      const capNaturalTdia = nReatMin*(1440/SU.cicloInd)*mpBat/1000;
-      if(nReatOffset>nReatMin){
-        const capOffsetTdia = nReatOffset*(1440/SU.cicloInd)*mpBat/1000;
-        impactEl.style.display='block';
-        impactEl.textContent = 'Ritmo natural dos '+nReatMin+' reator(es) da meta: '+offsetMinCalc+' min (até '+fSU(capNaturalTdia,0)+' t/dia). '
-          +'Pedido de '+SU.offsetManual+' min é mais apertado — precisaria de '+nReatOffset+' reator(es) (+'+(nReatOffset-nReatMin)+') p/ sustentar, o que abriria capacidade até '+fSU(capOffsetTdia,0)+' t/dia. '
-          +'Isso NÃO muda a produção/custos do modelo — pra usar essa capacidade de verdade, suba a meta de MP/dia acima p/ até '+fSU(capOffsetTdia,0)+' t/dia.';
-      } else {
-        impactEl.style.display='block';
-        impactEl.textContent = 'Dentro do ritmo natural dos '+nReatMin+' reator(es) da meta (até '+offsetMinCalc+' min, capacidade '+fSU(capNaturalTdia,0)+' t/dia) — reatores e produção não mudam.';
-      }
-    } else {
-      impactEl.style.display='none';
-    }
-  }
-  // Tempos de cada fase da batelada — alimentam o Gantt e a simulação de capacidade abaixo.
-  // Sequência: carga → aquecimento → reação (hidrólise) → descarga. A reação é o que sobra
-  // do ciclo total depois de descontar as outras 3 fases (não tem slider próprio).
-  const tCarga = SU.tCargaInd||20;
-  const tDescarga = SU.tDescargaInd||15;
-  const reacaoCalc = SU.cicloInd - tCarga - SU.htInd - tDescarga;
+  setS('sub-r-offset', offsetMinCalc+' min entre bateladas');
   setS('sub-r-tcarga', tCarga+' min');
   setS('sub-r-tdescarga', tDescarga+' min');
-  setS('sub-r-reacao', reacaoCalc>=0 ? fSU(reacaoCalc,0)+' min' : '⚠ negativo — reduza carga/descarga ou aumente o ciclo');
   const tcSl=document.getElementById('su-tcarga-sl');
   if(tcSl) tcSl.value=tCarga;
   const tdSl=document.getElementById('su-tdescarga-sl');
   if(tdSl) tdSl.value=tDescarga;
 
-  // ── Gantt de escalonamento dos reatores: como as bateladas se intercalam no tempo ──
-  // Usa o cenário do offset MANUAL quando ligado (o "e se" que o usuário está explorando),
-  // senão o ritmo natural dos reatores da meta — mesma lógica da nota de impacto acima.
+  // ── Gantt de escalonamento dos reatores: como as bateladas se intercalam no tempo,
+  // dado o ritmo natural (cicloInd/nReat) dos reatores exigidos pela meta de MP ──
   const ganttEl=document.getElementById('su-gantt');
   const ganttNoteEl=document.getElementById('su-gantt-note');
   if(ganttEl){
-    const gN    = SU.offsetManualOn ? Math.max(nReatMin,nReatOffset) : nReatMin;
-    const gOff  = SU.offsetManualOn ? (SU.offsetManual||offsetMinCalc) : offsetMinCalc;
+    const gN    = nReatMin;
+    const gOff  = offsetMinCalc;
     const period  = gN*gOff;                              // min p/ o padrão se repetir
     const horizon = period + Math.min(period, SU.cicloInd*0.6);
     const scale = Math.max(600/horizon, 1.3);              // px/min
@@ -5050,7 +5014,7 @@ function renderScaleup(){
         ganttNoteEl.textContent = '⚠ Tempo de '+partes.join(' e ')+' maior que o offset ('+gOff+' min) — essas fases de reatores consecutivos se sobrepõem. Só é viável com mais de uma linha em paralelo; senão, o offset mínimo praticável é '+Math.max(cargaConflict?tCarga:0,descargaConflict?tDescarga:0)+' min.';
       } else {
         ganttNoteEl.style.color='var(--t2)';
-        ganttNoteEl.textContent = 'Carga e descarga não se sobrepõem entre reatores — 1 linha de cada sustenta o ritmo. Padrão de '+gN+' reator(es) a cada '+gOff+' min se repete a cada '+fSU(period,0)+' min.'+(SU.offsetManualOn?' (cenário do offset manual — reatores/produção reais continuam presos à meta de MP acima)':' (ritmo natural da meta de MP)');
+        ganttNoteEl.textContent = 'Carga e descarga não se sobrepõem entre reatores — 1 linha de cada sustenta o ritmo. Padrão de '+gN+' reator(es) (exigidos pela meta de MP) a cada '+gOff+' min se repete a cada '+fSU(period,0)+' min.';
       }
     }
   }
