@@ -4044,6 +4044,45 @@ function capexRefreshSoon(){
   }, 350);
 }
 
+// Atualiza a cor de borda/estrela dos cards de um item SEM re-renderizar o innerHTML
+// (não mexe no valor/foco dos campos) — chamada a cada tecla digitada no preço, pra que
+// "mais barato" (verde) e "selecionado não é o mais caro" (dourado) reajam na hora, em
+// vez de só depois que o foco sair do painel inteiro (o que dava a impressão de bug).
+function capexRecolorItem(item){
+  const it = SU.capexReal[item];
+  if(!it) return;
+  const values = it.cot.map(c=>c.v||0);
+  const nonZero = values.filter(v=>v>0);
+  const minV = nonZero.length ? Math.min(...nonZero) : 0;
+  const maxV = nonZero.length ? Math.max(...nonZero) : 0;
+  it.cot.forEach((c,i)=>{
+    const isSel = it.sel===i;
+    const isMin = c.v>0 && c.v===minV && nonZero.length>1;
+    const isMax = c.v>0 && c.v===maxV && nonZero.length>1;
+    const isGold = isSel && !isMax;
+    const borderColor = isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)';
+    const bg = isGold?'var(--c-amber-bg)':'var(--s2)';
+    const labelColor = isGold?'var(--c-amber)':'var(--t2)';
+    document.querySelectorAll('[data-capex-card="'+item+'|'+i+'"]').forEach(card=>{
+      card.style.borderColor = borderColor;
+      card.style.background = bg;
+    });
+    document.querySelectorAll('[data-capex-label="'+item+'|'+i+'"]').forEach(lbl=>{
+      lbl.style.color = labelColor;
+    });
+    document.querySelectorAll('[data-capex-star="'+item+'|'+i+'"]').forEach(star=>{
+      star.style.display = isMin?'':'none';
+    });
+  });
+}
+// Digitação ao vivo no campo de preço: só atualiza o valor em memória e recolore —
+// o commit "de verdade" (autosave, totais, formatação do campo) continua no onchange
+function capexLiveValue(item, idx, val){
+  const it = SU.capexReal[item];
+  if(!it || !it.cot[idx]) return;
+  it.cot[idx].v = +String(val).replace(/[^\d]/g,'') || 0;
+  capexRecolorItem(item);
+}
 // Atualiza campo específico de uma cotação
 function capexSet(item, idx, field, val){
   if(!SU.capexReal[item]) return;
@@ -4092,19 +4131,20 @@ function renderCapexRows(){
             const isMax = c.v>0 && c.v===maxV && nonZero.length>1;
             const isGold = isSel && !isMax; // selecionado não ganha destaque dourado se for o mais caro da linha
             return `
-              <div style="border:1.5px solid ${isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:5px;padding:5px;
+              <div data-capex-card="${k}|${i}" style="border:1.5px solid ${isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:5px;padding:5px;
                 background:${isGold?'var(--c-amber-bg)':'var(--s2)'};">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:3px;margin-bottom:3px;">
-                  <label style="font-size:8.5px;font-weight:700;color:${isGold?'var(--c-amber)':'var(--t3)'};cursor:pointer;">
+                  <label data-capex-label="${k}|${i}" style="font-size:8.5px;font-weight:700;color:${isGold?'var(--c-amber)':'var(--t3)'};cursor:pointer;">
                     <input type="radio" name="cap-sel-${k}" ${isSel?'checked':''}
                       onchange="capexSelectSupplier('${k}',${i})" style="margin:0 3px 0 0;vertical-align:middle;">
                     Fornec. ${String.fromCharCode(65+i)}
                   </label>
-                  ${isMin?'<span style="font-size:8px;color:var(--c-green);font-weight:700;">★</span>':''}
+                  <span data-capex-star="${k}|${i}" style="font-size:8px;color:var(--c-green);font-weight:700;${isMin?'':'display:none;'}">★</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:3px;">
                   <span style="font-size:8.5px;color:var(--t3);">R$</span>
                   <input type="text" inputmode="numeric" value="${c.v?Number(c.v).toLocaleString('pt-BR'):''}" placeholder="0"
+                    oninput="capexLiveValue('${k}',${i},this.value)"
                     onchange="capexSet('${k}',${i},'v',this.value)"
                     style="flex:1;min-width:0;background:var(--s3);border:1px solid var(--b1);border-radius:3px;
                       padding:3px 4px;font-size:10px;color:var(--t1);font-weight:600;">
@@ -4160,19 +4200,20 @@ function renderCapexRowsWide(){
             const isGold = isSel && !isMax; // selecionado não ganha destaque dourado se for o mais caro da linha
             const letter = String.fromCharCode(65+i);
             return `
-              <div style="border:2px solid ${isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:6px;padding:8px;
+              <div data-capex-card="${k}|${i}" style="border:2px solid ${isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:6px;padding:8px;
                 background:${isGold?'var(--c-amber-bg)':'var(--s2)'};display:flex;flex-direction:column;gap:5px;min-width:0;">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-                  <label style="font-size:10px;font-weight:700;color:${isGold?'var(--c-amber)':'var(--t2)'};cursor:pointer;">
+                  <label data-capex-label="${k}|${i}" style="font-size:10px;font-weight:700;color:${isGold?'var(--c-amber)':'var(--t2)'};cursor:pointer;">
                     <input type="radio" name="cotw-sel-${k}" ${isSel?'checked':''}
                       onchange="capexSelectSupplier('${k}',${i})" style="margin:0 4px 0 0;vertical-align:middle;">
                     Fornec. ${letter}
                   </label>
-                  ${isMin?'<span style="font-size:9px;color:var(--c-green);font-weight:700;">★</span>':''}
+                  <span data-capex-star="${k}|${i}" style="font-size:9px;color:var(--c-green);font-weight:700;${isMin?'':'display:none;'}">★</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:4px;">
                   <span style="font-size:10px;color:var(--t3);font-weight:600;">R$</span>
                   <input type="text" inputmode="numeric" value="${c.v?Number(c.v).toLocaleString('pt-BR'):''}" placeholder="0"
+                    oninput="capexLiveValue('${k}',${i},this.value)"
                     onchange="capexSet('${k}',${i},'v',this.value)"
                     style="flex:1;min-width:0;background:var(--s3);border:1px solid var(--b1);border-radius:4px;
                       padding:4px 5px;font-size:12px;color:var(--t1);font-weight:700;">
