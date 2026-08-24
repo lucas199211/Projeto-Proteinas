@@ -4049,7 +4049,7 @@ function capexSet(item, idx, field, val){
   if(!SU.capexReal[item]) return;
   const c = SU.capexReal[item].cot[idx];
   if(!c) return;
-  if(field==='v') c.v = +val || 0;
+  if(field==='v') c.v = +String(val).replace(/[^\d]/g,'') || 0; // aceita "111.313" (formatado) ou "111313"
   else c[field] = val || '';
   renderScaleup();      // totais do card de CAPEX atualizam na hora
   capexRefreshSoon();   // painel se redesenha quando você sair do campo
@@ -4101,7 +4101,7 @@ function renderCapexRows(){
                 </div>
                 <div style="display:flex;align-items:center;gap:3px;">
                   <span style="font-size:8.5px;color:var(--t3);">R$</span>
-                  <input type="number" value="${c.v||''}" placeholder="0" min="0" step="10000"
+                  <input type="text" inputmode="numeric" value="${c.v?Number(c.v).toLocaleString('pt-BR'):''}" placeholder="0"
                     onchange="capexSet('${k}',${i},'v',this.value)"
                     style="flex:1;min-width:0;background:var(--s3);border:1px solid var(--b1);border-radius:3px;
                       padding:3px 4px;font-size:10px;color:var(--t1);font-weight:600;">
@@ -4169,7 +4169,7 @@ function renderCapexRowsWide(){
                 </div>
                 <div style="display:flex;align-items:center;gap:4px;">
                   <span style="font-size:10px;color:var(--t3);font-weight:600;">R$</span>
-                  <input type="number" value="${c.v||''}" placeholder="0" min="0" step="10000"
+                  <input type="text" inputmode="numeric" value="${c.v?Number(c.v).toLocaleString('pt-BR'):''}" placeholder="0"
                     onchange="capexSet('${k}',${i},'v',this.value)"
                     style="flex:1;min-width:0;background:var(--s3);border:1px solid var(--b1);border-radius:4px;
                       padding:4px 5px;font-size:12px;color:var(--t1);font-weight:700;">
