@@ -4153,12 +4153,14 @@ function renderCapexRowsWide(){
           ${it.cot.map((c,i)=>{
             const isSel = it.sel===i;
             const isMin = c.v>0 && c.v===minV && nonZero.length>1;
+            const isMax = c.v>0 && c.v===maxV && nonZero.length>1;
+            const isGold = isSel && !isMax; // selecionado não ganha destaque dourado se for o mais caro da linha
             const letter = String.fromCharCode(65+i);
             return `
-              <div style="border:2px solid ${isSel?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:6px;padding:8px;
-                background:${isSel?'var(--c-amber-bg)':'var(--s2)'};display:flex;flex-direction:column;gap:5px;min-width:0;">
+              <div style="border:2px solid ${isGold?'var(--c-amber)':isMin?'var(--c-green)':'var(--b2)'};border-radius:6px;padding:8px;
+                background:${isGold?'var(--c-amber-bg)':'var(--s2)'};display:flex;flex-direction:column;gap:5px;min-width:0;">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-                  <label style="font-size:10px;font-weight:700;color:${isSel?'var(--c-amber)':'var(--t2)'};cursor:pointer;">
+                  <label style="font-size:10px;font-weight:700;color:${isGold?'var(--c-amber)':'var(--t2)'};cursor:pointer;">
                     <input type="radio" name="cotw-sel-${k}" ${isSel?'checked':''}
                       onchange="capexSelectSupplier('${k}',${i})" style="margin:0 4px 0 0;vertical-align:middle;">
                     Fornec. ${letter}
