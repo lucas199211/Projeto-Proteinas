@@ -497,7 +497,12 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
     <div class="pr">
       <div class="pr-head"><span class="pr-lbl">Custo MO (R$/kg pó)</span><span class="pr-val editable" data-key="moCusto" data-min="0" data-max="100">R$ 2,50</span></div>
       <input type="range" min="0" max="100" step="0.1" value="2.5" oninput="P.moCusto=+this.value;render()">
-      <div class="pr-note">4 operadores 12×36 · inclui encargos</div>
+      <div class="pr-note">4 operadores 12×36 · inclui encargos · referência R$/kg (não usado no OPEX/h)</div>
+    </div>
+    <div class="pr">
+      <div class="pr-head"><span class="pr-lbl">Custo H/H (R$/h)</span><span class="pr-val editable" data-key="custoHH" data-min="0" data-max="200">R$ 100,00</span></div>
+      <input type="range" min="0" max="200" step="0.5" value="100" oninput="P.custoHH=+this.value;render()">
+      <div class="pr-note">Custo direto por hora (homem-hora) — independe da produção de pó, usado no OPEX/h do Balanço Global</div>
     </div>
   </div>
 </div>
@@ -3022,7 +3027,7 @@ const P={
   tCarga:30,tHidro:180,tInativ:20,
   evapCap:100,
   enzDose:1.0,enzCost:50,mpCost:0.50,pvPo:8.00,pvOil:2.50,
-  moCusto:2.5,
+  moCusto:2.5,custoHH:100,
   boil:800,ht:30,fuel:'glp',fp:4.50,elet:0.72,
   pt:15,pm:4,po:7,pe:3,pd:8,ptw:0.45,tbu:24.6,
   dryTamb:25,dryTwork:180,dryTout:85,dryUmid:4.0,dryEff:85,dryFp:4.50,dryTfeed:50,dryGlpReal:5.0
@@ -3037,7 +3042,7 @@ const FMT={
   evapCap:{suffix:' L/h',dec:0},
   enzDose:{suffix:'%',dec:2}, enzCost:{prefix:'R$ ',dec:2},
   pvPo:{prefix:'R$ ',dec:2}, pvOil:{prefix:'R$ ',dec:2},
-  moCusto:{prefix:'R$ ',dec:2},
+  moCusto:{prefix:'R$ ',dec:2}, custoHH:{prefix:'R$ ',dec:2},
   boil:{suffix:'',dec:0}, ht:{suffix:'',dec:0}, fp:{prefix:'R$ ',dec:2},
   elet:{prefix:'R$ ',dec:2},
   pt:{suffix:' kW',dec:1}, pm:{suffix:' kW',dec:1}, po:{suffix:' kW',dec:1},
@@ -3379,7 +3384,7 @@ function _render(){
   const margin_h=rev_total-op_total; // margem bruta (sem MO)
 
   // MO — campo único, impacta diretamente o lucro líquido
-  const mo_h=powder_avg*P.moCusto;          // R$/h de mão de obra
+  const mo_h=P.custoHH;                     // R$/h de mão de obra — custo direto (H/H), independe da produção de pó
   const op_total_com_mo=op_total+mo_h;      // OPEX total incluindo MO
   const op_pkg_com_mo=powder_avg>0?op_total_com_mo/powder_avg:0;
   const lucro_liquido=margin_h-mo_h;        // lucro líquido = margem bruta - MO
@@ -3803,7 +3808,7 @@ async function loadSnapshot(){
       // Validação pós-load: garante que parâmetros críticos são números válidos.
       // Se qualquer um estiver inválido, restaura o default (auto-correção contra snapshots corrompidos)
       const critP={mp:500,reator:2000,peneira:20,triSol:5,bi:7,bor:18,bev:50,mfr:80,
-        tCarga:30,ht:30,tHidro:180,tInativ:20,evapCap:100,enzDose:1.0,enzCost:50,mpCost:0.50,elet:0.72};
+        tCarga:30,ht:30,tHidro:180,tInativ:20,evapCap:100,enzDose:1.0,enzCost:50,mpCost:0.50,elet:0.72,custoHH:100};
       Object.keys(critP).forEach(k=>{
         if(typeof P[k]!=='number' || !isFinite(P[k])) P[k]=critP[k];
       });
@@ -3915,7 +3920,7 @@ function reset(){
   P.tCarga=30;P.tHidro=180;P.tInativ=20;
   P.evapCap=100;
   P.enzDose=1.0;P.enzCost=50;P.mpCost=0.50;P.pvPo=8.00;P.pvOil=2.50;
-  P.moCusto=2.5;
+  P.moCusto=2.5;P.custoHH=100;
   P.boil=800;P.ht=30;P.fuel='glp';P.fp=4.50;P.elet=0.72;
   P.pt=15;P.pm=4;P.po=7;P.pe=3;P.pd=8;P.ptw=0.45;P.tbu=24.6;
   P.dryTamb=25;P.dryTwork=180;P.dryTout=85;P.dryUmid=4.0;P.dryEff=85;P.dryFp=4.50;P.dryTfeed=50;P.dryGlpReal=5.0;
