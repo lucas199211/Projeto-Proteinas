@@ -3247,15 +3247,22 @@ function _render(){
   const oil_vol = mf_feed_vol*0.03;
 
   // ── STEAM ──
-  // Aquecimento do reator: MP resfriada (4°C) até 55°C = ΔT de 51°C
-  // q = massa_total × Cp × ΔT
+  // Duas etapas de aquecimento do reator, NUNCA simultâneas (separadas pelas ~3h de
+  // hidrólise sem consumo) — o pico da caldeira é o maior das duas, não a soma:
+  // 1) MP resfriada (4°C) até 55°C = ΔT de 51°C, ao longo de P.ht min
   const dT_reator=51; // °C: 4°C (MP resfriada) → 55°C (hidrólise)
   const q_reator=bat_total*3.8*dT_reator; // kJ
   const kw_peak=q_reator/(P.ht*60);
+  // 2) Aquecimento p/ inativação: 55°C → 90°C = ΔT de 35°C, ao longo de P.tInativ min
+  const dT_inativ=35; // °C: 55°C (fim hidrólise) → 90°C (inativação enzimática)
+  const q_inativ=bat_total*3.8*dT_inativ; // kJ
+  const kw_peak_inativ=P.tInativ>0 ? q_inativ/(P.tInativ*60) : 0;
   // Vapor saturado a ~4 bara: calor latente h_fg ≈ 2133 kJ/kg, eficiência serpentina ~85%
   const h_vap=2133;
   const eff_troca=0.85;
-  const st_reator_peak=(kw_peak*3600)/(h_vap*eff_troca);
+  const st_aquec_peak=(kw_peak*3600)/(h_vap*eff_troca);
+  const st_inativ_peak=(kw_peak_inativ*3600)/(h_vap*eff_troca);
+  const st_reator_peak=Math.max(st_aquec_peak, st_inativ_peak); // pico real = a etapa mais exigente
   const st_reator_reg=50; // kg/h manutenção de temperatura
   const st_evap=(cond_kw*1.05*3600)/(h_vap*eff_troca);
 
@@ -3367,7 +3374,7 @@ function _render(){
   set('n-mp-info', f(bat_mass,0)+' kg/bat · '+fR(P.mpCost,2)+'/kg');
   set('n-reator-size', f(P.reator,0)+' L');
   set('n-reator-ns',  'MP '+f(bat_mass,0)+' kg + água '+f(bat_water,0)+' kg = '+f(bat_total,0)+' kg/bat');
-  set('n-reator-st',  'vapor caldeira: '+f(st_reator_peak,0)+' kg/h pico');
+  set('n-reator-st',  'vapor caldeira: '+f(st_reator_peak,0)+' kg/h pico ('+(st_inativ_peak>st_aquec_peak?'inativação':'aquecimento')+')');
   set('n-reator-enz', 'enzima: '+f(enz_kg,2)+' kg/bat · '+fR(enz_cost_bat,2)+'/bat');
   // ── DISPLAYS DO CICLO ──
   set('ciclo-total',   f(ciclo_config_min,0));
@@ -3499,7 +3506,7 @@ function _render(){
   set('op-b-cons', f(fuelUnitsPerH(st_reg),3)+' '+cfg.unit);
   set('op-b-pk',   fR(op_boil_peak)+'/h pico');
   set('op-b-rg',   fR(op_boil_reg)+'/h regime');
-  set('sbr','→ Reator: '+f(st_reator_peak,0)+' kg/h pico / '+f(st_reator_reg,0)+' regime');
+  set('sbr','→ Reator: '+f(st_reator_peak,0)+' kg/h pico ('+(st_inativ_peak>st_aquec_peak?'inativação':'aquecimento')+') / '+f(st_reator_reg,0)+' regime');
   set('sbe','→ Evaporador: '+f(st_evap,0)+' kg/h contínuo');
   set('sbd','→ Spray dryer (GLP direto): '+f(glp_dryer_kg_h,2)+' kg/h GLP · água evap.: '+f(agua_evap_dryer,1)+' kg/h');
 
