@@ -501,6 +501,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <span class="pr-lbl">Tipo de combustível</span>
       <select id="fuel-sel" onchange="P.fuel=this.value;applyFuelDefaults();render()">
         <option value="glp">GLP (R$/kg)</option>
+        <option value="diesel">Diesel (R$/L)</option>
         <option value="cavaco">Cavaco / Biomassa (R$/ton)</option>
         <option value="elec">Energia elétrica (R$/kWh)</option>
       </select>
@@ -3020,7 +3021,10 @@ const FUEL={
         ksp:4432,unit:'ton/h'},
   elec: {lbl:'Preço elétrico caldeira (R$/kWh)',note:'Ref.: ~R$0,65–1,20/kWh',min:0.3,max:2,step:0.01,def:0.90,
         // 1 kWh=3600 kJ, eff 98% → 3528 kJ, /2200 = 1.604 kg_steam/kWh
-        ksp:1.604,unit:'kWh/h'}
+        ksp:1.604,unit:'kWh/h'},
+  diesel:{lbl:'Preço diesel (R$/L)',note:'Ref.: diesel comum ~R$5,50–6,50/L',min:2,max:10,step:0.05,def:6.00,
+        // Diesel: ~36 MJ/L, eff 85% → 30.600 kJ/L, /2200 = 13,9 kg_steam/L
+        ksp:13.9,unit:'L/h Diesel'}
 };
 
 function rho(b){return 1+b*0.004;}
@@ -3482,10 +3486,10 @@ function _render(){
   // Caldeira
   const cfg=FUEL[P.fuel];
   set('n-bc', f(P.boil,0)+' kg/h · '+
-    (P.fuel==='glp'?'GLP':P.fuel==='cavaco'?'Cavaco':'Elétrica'));
+    (P.fuel==='glp'?'GLP':P.fuel==='diesel'?'Diesel':P.fuel==='cavaco'?'Cavaco':'Elétrica'));
   set('n-bd', 'demanda pico: '+f(st_peak,0)+' kg/h (reator '+f(st_reator_peak,0)+' + evap '+f(st_evap,0)+') · dryer tem queimador próprio');
   const margOk=margin>=10;  setC('n-bm', margin>=10?'var(--c-green)':margin>=0?'var(--c-amber)':'var(--c-red)');
-  set('op-b-fuel', P.fuel==='glp'?'GLP':P.fuel==='cavaco'?'Cavaco/Biomassa':'Eletricidade');
+  set('op-b-fuel', P.fuel==='glp'?'GLP':P.fuel==='diesel'?'Diesel':P.fuel==='cavaco'?'Cavaco/Biomassa':'Eletricidade');
   set('op-b-cons', f(fuelUnitsPerH(st_reg),3)+' '+cfg.unit);
   set('op-b-pk',   fR(op_boil_peak)+'/h pico');
   set('op-b-rg',   fR(op_boil_reg)+'/h regime');
