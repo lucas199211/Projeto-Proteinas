@@ -3028,8 +3028,9 @@ const FUEL={
         // 1 kWh=3600 kJ, eff 98% → 3528 kJ, /2200 = 1.604 kg_steam/kWh
         ksp:1.604,unit:'kWh/h'},
   diesel:{lbl:'Preço diesel (R$/L)',note:'Ref.: diesel comum ~R$5,50–6,50/L',min:2,max:10,step:0.05,def:6.00,
-        // Diesel: ~36 MJ/L, eff 85% → 30.600 kJ/L, /2200 = 13,9 kg_steam/L
-        ksp:13.9,unit:'L/h Diesel'}
+        // Calibrado com dado real de fornecedor de caldeira: 500 kg/h vapor ≈ 35 L/h diesel
+        // (era estimativa teórica de 13,9 kg_steam/L — 36 MJ/L, eff 85% — bem próxima, ~3% de diferença)
+        ksp:500/35,unit:'L/h Diesel'}
 };
 
 function rho(b){return 1+b*0.004;}
