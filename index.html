@@ -3407,6 +3407,8 @@ function _render(){
   set('op-mf-kw',f(P.pm,1)+' kW');
   set('op-mf-rh',fR(op_mf)+'/h');
   set('a-mfo', 'permeado · '+f(or_feed_vol,0)+' L/h · '+f(bi,1)+'° Brix');  set('n-or',  f(bi,1)+'°→'+f(bor,1)+'° Brix · '+f(or_feed_vol,0)+' L/h');
+  set('op-or-kw',f(P.po,1)+' kW');
+  set('op-or-rh',fR(op_or)+'/h');
   // ── Displays com bypass-awareness ──
   set('n-orc', skipOR
     ? '⊘ OR inativa — licor passa direto ('+f(or_feed_vol,0)+' L/h a '+f(bi,1)+'° Brix)'
