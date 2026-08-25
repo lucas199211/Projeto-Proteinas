@@ -357,6 +357,11 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <div class="pr-head"><span class="pr-lbl">Hidrólise (min)</span><span class="pr-val editable" data-key="tHidro" data-min="60" data-max="300">180 min</span></div>
       <input type="range" min="60" max="300" step="10" value="180" oninput="P.tHidro=+this.value;render()">
     </div>
+    <div class="pr">
+      <div class="pr-head"><span class="pr-lbl">Aquecimento inativação (min)</span><span class="pr-val editable" data-key="tInativ" data-min="5" data-max="60">20 min</span></div>
+      <input type="range" min="5" max="60" step="5" value="20" oninput="P.tInativ=+this.value;render()">
+      <div class="pr-note">ΔT: 55°C → 90°C (35°C) · inativa a enzima antes da centrifugação</div>
+    </div>
 
     <!-- Card de resultado calculado -->
     <div class="pr" id="ciclo-card" style="background:var(--s3);border-color:var(--b2);">
@@ -2983,7 +2988,7 @@ const P={
   // NaN no scale-up em load sem localStorage, ex.: no celular)
   mp:500, reator:2000, peneira:20, triSol:5, bi:7, bor:18, bev:50, mfr:80,
   skipMF:false, skipOR:false, skipEvap:false, skipDryer:false,
-  tCarga:30,tHidro:180,
+  tCarga:30,tHidro:180,tInativ:20,
   evapCap:100,
   enzDose:1.0,enzCost:50,mpCost:0.50,pvPo:8.00,pvOil:2.50,
   moCusto:2.5,
@@ -2996,7 +3001,7 @@ const P={
 const FMT={
   mp:{suffix:' kg',dec:0}, reator:{suffix:' L',dec:0}, mpCost:{prefix:'R$ ',dec:2},
   peneira:{suffix:'%',dec:0}, bi:{suffix:'°',dec:1}, bor:{suffix:'°',dec:1},
-  tCarga:{suffix:' min',dec:0}, tHidro:{suffix:' min',dec:0},
+  tCarga:{suffix:' min',dec:0}, tHidro:{suffix:' min',dec:0}, tInativ:{suffix:' min',dec:0},
   bev:{suffix:'°',dec:0}, mfr:{suffix:'%',dec:0},
   evapCap:{suffix:' L/h',dec:0},
   enzDose:{suffix:'%',dec:2}, enzCost:{prefix:'R$ ',dec:2},
@@ -3106,7 +3111,7 @@ function _render(){
   const enz_kg     = bat_mass * (P.enzDose/100);
   const enz_cost_bat = enz_kg * P.enzCost;
 
-  const ciclo_config_min = P.tCarga + P.ht + P.tHidro;
+  const ciclo_config_min = P.tCarga + P.ht + P.tHidro + P.tInativ;
   const bat_per_dia_real = ciclo_config_min > 0 ? (24*60)/ciclo_config_min : 0;
   const bat_per_h        = bat_per_dia_real / 24;
   const licor_real_h     = bat_vol_liq * bat_per_h;   // L/h contínuo real do reator
@@ -3735,7 +3740,7 @@ async function loadSnapshot(){
       // Validação pós-load: garante que parâmetros críticos são números válidos.
       // Se qualquer um estiver inválido, restaura o default (auto-correção contra snapshots corrompidos)
       const critP={mp:500,reator:2000,peneira:20,triSol:5,bi:7,bor:18,bev:50,mfr:80,
-        tCarga:30,ht:30,tHidro:180,evapCap:100,enzDose:1.0,enzCost:50,mpCost:0.50,elet:0.72};
+        tCarga:30,ht:30,tHidro:180,tInativ:20,evapCap:100,enzDose:1.0,enzCost:50,mpCost:0.50,elet:0.72};
       Object.keys(critP).forEach(k=>{
         if(typeof P[k]!=='number' || !isFinite(P[k])) P[k]=critP[k];
       });
@@ -3844,7 +3849,7 @@ function reset(){
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   P.mp=500;P.reator=2000;P.peneira=20;P.triSol=5;P.bi=7;P.bor=18;P.bev=50;P.mfr=80;
   P.skipMF=false;P.skipOR=false;P.skipEvap=false;P.skipDryer=false;
-  P.tCarga=30;P.tHidro=180;
+  P.tCarga=30;P.tHidro=180;P.tInativ=20;
   P.evapCap=100;
   P.enzDose=1.0;P.enzCost=50;P.mpCost=0.50;P.pvPo=8.00;P.pvOil=2.50;
   P.moCusto=2.5;
@@ -4350,7 +4355,7 @@ function renderScaleup(){
   });
 
   // Ciclo piloto de referência
-  const cicloPiloto = P.tCarga + P.ht + P.tHidro;
+  const cicloPiloto = P.tCarga + P.ht + P.tHidro + P.tInativ;
   setS('su-ciclo-piloto', cicloPiloto);
 
   // ── Disponibilidade ──
