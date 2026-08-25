@@ -2173,6 +2173,24 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       </div>
     </div>
 
+    <!-- Custos detalhados -->
+    <div style="padding:6px 10px;border-bottom:1px solid var(--b1);">
+      <div style="font-size:8px;font-weight:700;color:var(--t3);text-transform:uppercase;
+        letter-spacing:.05em;margin-bottom:4px;">Custos (R$/h)</div>
+      <table style="width:100%;border-collapse:collapse;font-size:10px;">
+        <tr><td style="color:var(--t3);padding:1px 0;">MP</td>
+            <td style="text-align:right;font-weight:600;color:var(--t1);" id="bg-c-mp">—</td></tr>
+        <tr><td style="color:var(--t3);padding:1px 0;">Enzima</td>
+            <td style="text-align:right;font-weight:600;color:var(--t1);" id="bg-c-enz">—</td></tr>
+        <tr><td style="color:var(--t3);padding:1px 0;">Energia (elétrico)</td>
+            <td style="text-align:right;font-weight:600;color:var(--t1);" id="bg-c-ener">—</td></tr>
+        <tr><td style="color:var(--t3);padding:1px 0;" id="bg-c-fuel-lbl">Combustível</td>
+            <td style="text-align:right;font-weight:600;color:var(--t1);" id="bg-c-fuel">—</td></tr>
+        <tr><td style="color:var(--t3);padding:1px 0;">Mão de obra</td>
+            <td style="text-align:right;font-weight:600;color:var(--t1);" id="bg-c-mo">—</td></tr>
+      </table>
+    </div>
+
     <!-- KPIs: 3 métricas em linha -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
       <div style="padding:6px 10px;text-align:center;border-right:1px solid var(--b1);">
@@ -3516,7 +3534,20 @@ function _render(){
   set('bg-sol-out', f(pen_kg,1)+' kg/bat · descarte seco');
   const rend_prot  = bat_mass>0 ? (powder_avg*24/bat_per_dia_needed/bat_mass*100) : 0;
   set('bg-rend-prot', f(Math.min(rend_prot,99),1)+'%');
-  set('bg-opex-h',  'R$ '+f(op_total,0)+'/h');
+  // Custos detalhados: energia elétrica, combustível/vapor (usa o vapor MÉDIO do reator,
+  // não o pico — reflete o custo real de operação), MP, enzima e MO (mão de obra, que
+  // op_total não incluía)
+  const bg_energia = op_trid+op_mf+op_or+op_evap_el+op_dry_el+op_tow_el;
+  const bg_fuel = op_reator_vap_avg+op_evap_vap+op_dry_vap;
+  const bg_fuelName = P.fuel==='glp'?'GLP':P.fuel==='diesel'?'Diesel':P.fuel==='cavaco'?'Cavaco':'Elétrica';
+  const bg_total = op_mp_h+op_enz_h+bg_energia+bg_fuel+mo_h;
+  set('bg-c-mp',   fR(op_mp_h)+'/h');
+  set('bg-c-enz',  fR(op_enz_h)+'/h');
+  set('bg-c-ener', fR(bg_energia)+'/h');
+  set('bg-c-fuel-lbl', 'Combustível ('+bg_fuelName+')');
+  set('bg-c-fuel', fR(bg_fuel)+'/h');
+  set('bg-c-mo',   fR(mo_h)+'/h');
+  set('bg-opex-h',  'R$ '+f(bg_total,0)+'/h');
   const rev_h = powder_avg*P.pvPo + oil_vol*0.92*P.pvOil;
   set('bg-rev-h',   'R$ '+f(rev_h,0)+'/h');
 
