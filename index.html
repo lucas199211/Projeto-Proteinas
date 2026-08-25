@@ -390,6 +390,18 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
           <div style="font-size:9px;color:var(--t3);">min</div>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;padding-top:4px;border-top:1px solid var(--b1);">
+        <div>
+          <div style="font-size:9px;color:var(--t3);">Bateladas/dia (ciclo real)</div>
+          <div style="font-size:13px;font-weight:700;color:var(--c-green);" id="bat-real">—</div>
+          <div style="font-size:9px;color:var(--t3);">bat/dia · com o ciclo configurado</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--t3);">Licor contínuo</div>
+          <div style="font-size:13px;font-weight:700;" id="licor-real">—</div>
+          <div style="font-size:9px;color:var(--t3);">L/h</div>
+        </div>
+      </div>
       <div style="font-size:10px;font-weight:600;margin-top:4px;border-top:1px solid var(--b1);padding-top:4px;" id="ciclo-status">—</div>
     </div>
 
@@ -3381,6 +3393,8 @@ function _render(){
   set('bat-needed',    f(bat_per_dia_needed,1));
   set('ciclo-needed',  f(ciclo_needed_min,0));
   set('ciclo-folga',   (ciclo_folga>=0?'+':'')+f(ciclo_folga,0));
+  set('bat-real',   f(bat_per_dia_real,1));
+  set('licor-real', f(licor_real_h,0));
   const statusEl = document.getElementById('ciclo-status');
   if(statusEl){
     if(ciclo_ok){
