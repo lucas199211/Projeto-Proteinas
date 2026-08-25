@@ -477,7 +477,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
   </div>
 </div>
 
-<div class="sb-group piloto-only fin-block">
+<div class="sb-group piloto-only fin-block-piloto">
   <div class="sb-group-title">💰 Preços de Venda</div>
   <div class="sb-sec">
     <div class="pr">
@@ -491,7 +491,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
   </div>
 </div>
 
-<div class="sb-group piloto-only fin-block">
+<div class="sb-group piloto-only fin-block-piloto">
   <div class="sb-group-title">👷 Mão de Obra</div>
   <div class="sb-sec">
     <div class="pr">
@@ -733,7 +733,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         </div>
       </div>
 
-      <div class="su-input-group fin-block" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
+      <div class="su-input-group fin-block-fabril" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
         <div class="su-sec-title">🧾 Custos de Insumos (Industrial)</div>
         <div class="pr">
           <div class="pr-head">
@@ -836,7 +836,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         </div>
       </div>
 
-      <div class="su-input-group fin-block" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
+      <div class="su-input-group fin-block-fabril" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
         <div class="su-sec-title">⏱️ Disponibilidade Real</div>
 
         <div class="pr">
@@ -867,7 +867,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         </div>
       </div>
 
-      <div class="su-input-group fin-block" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
+      <div class="su-input-group fin-block-fabril" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
         <div class="su-sec-title">👷 Mão de Obra Direta</div>
 
         <div class="pr">
@@ -898,7 +898,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         </div>
       </div>
 
-      <div class="su-input-group fin-block" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
+      <div class="su-input-group fin-block-fabril" style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:12px;">
         <div class="su-sec-title">🔧 Manutenção &amp; Seguros</div>
 
         <div class="pr">
@@ -1328,7 +1328,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
 
       <!-- OUTPUTS: layout horizontal por camada semântica -->
 
-      <div class="fin-block">
+      <div class="fin-block-fabril">
       <div style="display:flex;align-items:center;gap:10px;margin:24px 0 12px 0;">
         <div style="font-size:11px;font-weight:800;color:var(--c-amber);text-transform:uppercase;letter-spacing:.1em;
           background:var(--c-amber-bg);border:1px solid var(--c-amber-bd);border-radius:5px;padding:4px 10px;">
@@ -1535,7 +1535,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
         <div style="font-size:8px;color:var(--t3);margin-top:8px;" id="su-receita-ano">—</div>
       </div><!-- /linha 3 -->
 
-      </div><!-- /fin-block scale-up -->
+      </div><!-- /fin-block-fabril scale-up -->
     </div><!-- /outputs -->
 
 
@@ -1728,8 +1728,8 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
     </div>
   </div>
 
-  <!-- INÍCIO BLOCO FINANCEIRO (toggle) -->
-  <div class="fin-block">
+  <!-- INÍCIO BLOCO FINANCEIRO PILOTO (toggle) -->
+  <div class="fin-block-piloto">
   <!-- SEÇÃO 2: RESULTADO FINANCEIRO -->
   <div class="dash-section">
     <div class="dash-section-label">💰 Resultado Financeiro</div>
@@ -1846,7 +1846,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
     </div>
   </div>
 
-  </div><!-- /fin-block piloto -->
+  </div><!-- /fin-block-piloto -->
 
 </div><!-- /dash-top -->
 
@@ -5438,10 +5438,17 @@ function toggleDRE(show){
 }
 
 function toggleFinanceiro(show){
-  // #cot-section também tem a classe fin-block, mas sua visibilidade é
-  // controlada à parte pelo checkbox "📋 Cotações" (toggleCotacoes) — não deixa
-  // o toggle de Financeiro revelar o painel de Cotações por baixo dos panos.
-  document.querySelectorAll('.fin-block:not(#cot-section)').forEach(el=>{
+  // Controla só os blocos financeiros da planta FABRIL (industrial/scale-up) — não
+  // afeta o piloto (toggleFinanceiroPiloto, abaixo). #cot-section tem sua própria
+  // classe (não fin-block-fabril) e é controlada à parte pelo checkbox "📋 Cotações".
+  document.querySelectorAll('.fin-block-fabril').forEach(el=>{
+    el.style.display = show ? '' : 'none';
+  });
+}
+function toggleFinanceiroPiloto(show){
+  // Controla só os blocos financeiros da PLANTA PILOTO — independente do toggle
+  // da fabril acima, pra poder ver um sem mexer no outro.
+  document.querySelectorAll('.fin-block-piloto').forEach(el=>{
     el.style.display = show ? '' : 'none';
   });
 }
@@ -5571,8 +5578,13 @@ document.addEventListener('DOMContentLoaded', function(){
   try{
     const finToggle=document.getElementById('fin-toggle');
     if(finToggle) finToggle.checked=false;
-    document.querySelectorAll('.fin-block:not(#cot-section)').forEach(el=>{ el.style.display='none'; });
+    document.querySelectorAll('.fin-block-fabril').forEach(el=>{ el.style.display='none'; });
   }catch(e){ console.error('reset financeiro:', e); }
+  try{
+    const finTogglePiloto=document.getElementById('fin-toggle-piloto');
+    if(finTogglePiloto) finTogglePiloto.checked=false;
+    document.querySelectorAll('.fin-block-piloto').forEach(el=>{ el.style.display='none'; });
+  }catch(e){ console.error('reset financeiro piloto:', e); }
   try{
     const dreToggle=document.getElementById('dre-toggle');
     if(dreToggle) dreToggle.checked=false;
@@ -5606,8 +5618,12 @@ document.addEventListener('DOMContentLoaded', function(){
     <input type="checkbox" id="theme-invert"> Modo claro
   </label>
   <span style="width:1px;height:20px;background:var(--b2);flex-shrink:0;"></span>
-  <label class="tb-toggle" title="Mostrar/ocultar resultado financeiro, OPEX, CAPEX">
-    <input type="checkbox" id="fin-toggle" onchange="toggleFinanceiro(this.checked)"> 💰 Financeiro
+  <label class="tb-toggle" title="Mostrar/ocultar resultado financeiro, OPEX, CAPEX — só da planta fabril/industrial">
+    <input type="checkbox" id="fin-toggle" onchange="toggleFinanceiro(this.checked)"> 💰 Financeiro (Fabril)
+  </label>
+  <span style="width:1px;height:20px;background:var(--b2);flex-shrink:0;"></span>
+  <label class="tb-toggle" title="Mostrar/ocultar resultado financeiro, OPEX, mão de obra — só da planta piloto">
+    <input type="checkbox" id="fin-toggle-piloto" onchange="toggleFinanceiroPiloto(this.checked)"> 💰 Financeiro (Piloto)
   </label>
   <span style="width:1px;height:20px;background:var(--b2);flex-shrink:0;"></span>
   <label class="tb-toggle" title="Mostrar/ocultar DRE da operação">
