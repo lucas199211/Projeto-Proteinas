@@ -1907,6 +1907,7 @@ header{background:var(--s1);border-bottom:1px solid var(--b1);padding:0 14px;
       <div class="nr"><span class="nl">MP</span><span class="nv" id="op-r-mp">— R$/h</span></div>
       <div class="nr"><span class="nl">Enzima</span><span class="nv" id="op-r-enz">— R$/h</span></div>
       <div class="nr"><span class="nl">Vapor (pico)</span><span class="nv" id="op-r-vap">— R$/h</span></div>
+      <div class="nr"><span class="nl">Vapor (médio)</span><span class="nv" id="op-r-vap-avg" style="color:var(--c-green);">— R$/h</span></div>
     </div>
   </div>
   <div class="arr"><div class="arr-i">↓</div><div class="arr-l">hidrolisado · — kg/bat → tanque pulmão bat.→contínuo</div></div>
@@ -3334,6 +3335,14 @@ function _render(){
   const op_dry_vap=glp_dryer_kg_h*P.dryFp;
   const op_reator_vap_pk=fuelCost(st_reator_peak);
   const op_reator_vap_rg=fuelCost(st_reator_reg);
+  // Vapor médio do reator: pondera os 2 picos (aquecimento + inativação) pelo tempo real
+  // de cada etapa, e o regime (manutenção, 50 kg/h) pelo tempo "estável" (carga+hidrólise,
+  // sem aquecimento ativo) — reflete o custo real de operação por hora, diferente do pico
+  // (que serve só p/ dimensionar a caldeira, não pra estimar custo médio)
+  const t_estavel_min=P.tCarga+P.tHidro;
+  const steam_kg_bat=st_aquec_peak*(P.ht/60) + st_inativ_peak*(P.tInativ/60) + st_reator_reg*(t_estavel_min/60);
+  const st_reator_avg=ciclo_config_min>0 ? steam_kg_bat/(ciclo_config_min/60) : 0;
+  const op_reator_vap_avg=fuelCost(st_reator_avg);
 
   const op_evap_tot=op_evap_vap+op_evap_el;
   const op_dry_tot=op_dry_vap+op_dry_el;
@@ -3429,6 +3438,7 @@ function _render(){
   set('op-r-mp',  fR(op_mp_h)+'/h');
   set('op-r-enz', fR(op_enz_h)+'/h');
   set('op-r-vap', fR(op_reator_vap_pk)+'/h pico');
+  set('op-r-vap-avg', fR(op_reator_vap_avg)+'/h médio');
   set('n-pen-ns', 'sólidos retidos: '+f(P.peneira,0)+'% da MP · '+f(pen_kg,1)+' kg/bat | passa: '+f(bat_vol_liq,0)+' kg/bat');
   set('a-tri',    f(mf_feed_vol,0)+' L/h contínuo (após peneira)');
   set('op-tri-kw',f(P.pt,1)+' kW');
